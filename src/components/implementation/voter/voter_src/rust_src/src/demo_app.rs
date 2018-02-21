@@ -8,7 +8,7 @@ use lazy_static;
 lazy_static! {
     static ref VOTER:Lock<Voter> = unsafe {
         Lock::new(Sl::assert_scheduler_already_started(),
-                  Voter::new(3,1,do_work,service,Sl::assert_scheduler_already_started())
+                  Voter::new(3,do_work,Sl::assert_scheduler_already_started())
     )};
 }
 
@@ -23,7 +23,7 @@ const MODE: TestMode = TestMode::Healthy;
 
 pub fn start(sl: Sl) {
     println!("Test app initializing in mode {:?}", MODE);
-    Voter::monitor_components(&*VOTER, sl);
+    Voter::monitor_application(&*VOTER, sl);
 }
 
 /************************ Application *************************/
@@ -81,16 +81,4 @@ fn make_systemcall(sys_call: u8, rep_id: usize, sl: Sl) {
 
     let data: [u8; BUFF_SIZE] = [sys_call; BUFF_SIZE];
     println!("Rep got {:?}", Voter::request(&*VOTER, data, rep_id, sl)[0]);
-}
-
-/******************* Service Provider ********************/
-
-fn service(sl: Sl, rep_id: usize) {
-    Voter::srv_wait(&*VOTER, rep_id, sl);
-    loop {
-        let msg = Voter::get_request(&*VOTER, rep_id, sl);
-        println!("performing system call {:?}", msg[0]);
-        let data = [9; BUFF_SIZE];
-        Voter::send_response(&*VOTER, data, rep_id, sl);
-    }
 }
