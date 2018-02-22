@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use lib_composite::sl::{Sl, Thread, ThreadParameter};
 use std::fmt;
 use voter::*;
@@ -6,14 +5,14 @@ use voter::voter_config::*;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ReplicaState {
-    Init,       /* initialized not running */
+    Init, /* initialized not running */
     Processing,
     Blocked,
 }
 #[derive(PartialEq)]
 pub enum VoteStatus {
-    Fail(usize), /*stores divergent replica id*/
-    Inconclusive(u8, usize), /*number of replicas in processing state, id of replica in processing*/
+    Fail(usize),              /*stores divergent replica id*/
+    Inconclusive(u8, usize),  /*number of replicas in processing state, id of replica in processing*/
     Success([u8; BUFF_SIZE]), /*agreed upon message*/
 }
 
@@ -50,7 +49,7 @@ impl fmt::Debug for VoteStatus {
             "Status: {}",
             match self {
                 &VoteStatus::Inconclusive(num_processing, rep) => format!("Inconclusive {}:{:?}", num_processing, rep),
-                &VoteStatus::Success(consensus) => format!("Success: consensus request {:?}",consensus),
+                &VoteStatus::Success(consensus) => format!("Success: consensus request {:?}", consensus),
                 &VoteStatus::Fail(rep) => format!("Fail - {:?}", rep),
             }
         )

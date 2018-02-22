@@ -40,7 +40,7 @@ fn healthy(sl: Sl, rep_id: usize) {
     let mut i = 0;
     loop {
         if i % 100 == 0 {
-            make_systemcall(i / 100, rep_id, sl);
+            make_systemcall(i % 2, rep_id, sl);
             println!("Replica {:?} resuming work ....", rep_id);
         }
         i += 1;

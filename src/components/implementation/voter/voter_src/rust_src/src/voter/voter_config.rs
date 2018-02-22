@@ -1,5 +1,3 @@
-//maximum number of components that can be booted through the voter
-pub const MAX_COMPS: usize = 2;
 //RR priority of the replica threads
 pub const REP_PRIO: u32 = 5;
 //RR priority of the voter thread while voting
