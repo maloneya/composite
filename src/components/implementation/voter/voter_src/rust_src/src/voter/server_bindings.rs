@@ -2,6 +2,7 @@ use voter::voter_config::BUFF_SIZE;
 
 pub fn handle_request(serialized_msg: [u8; BUFF_SIZE]) -> [u8; BUFF_SIZE] {
     let sinv_id = serialized_msg[0];
+    println!("Voter making call:{:?}", sinv_id);
 
     match sinv_id {
         0 => [rk_write(&serialized_msg[1..]); BUFF_SIZE],

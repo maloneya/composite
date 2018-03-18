@@ -1,7 +1,5 @@
 //RR priority of the replica threads
 pub const REP_PRIO: u32 = 5;
-//RR priority of the voter thread while voting
-pub const VOTE_PRIO: u32 = 1;
 //maximum number of consecutive scheduler quantoms we allow a replica to
 //continue to process after other components in its component have reached
 //consensus

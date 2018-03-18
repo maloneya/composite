@@ -3,7 +3,6 @@ use lib_composite::sl_lock::Lock;
 
 use voter::voter_config::BUFF_SIZE;
 use voter::Voter;
-use lazy_static;
 
 lazy_static! {
     static ref VOTER:Lock<Voter> = unsafe {
@@ -39,6 +38,7 @@ fn do_work(sl: Sl, rep_id: usize) {
 fn healthy(sl: Sl, rep_id: usize) {
     let mut i = 0;
     loop {
+        //print!("{:?}", rep_id);
         if i % 100 == 0 {
             make_systemcall(i % 2, rep_id, sl);
             println!("Replica {:?} resuming work ....", rep_id);
@@ -77,8 +77,8 @@ fn bad_state(sl: Sl, rep_id: usize) {
 }
 
 fn make_systemcall(sys_call: u8, rep_id: usize, sl: Sl) {
-    println!("Replica {:?} making syscall {:?}", rep_id, sys_call);
-
+    println!("Rep {:?} syscall {:?}", rep_id, sys_call);
     let data: [u8; BUFF_SIZE] = [sys_call; BUFF_SIZE];
-    println!("Rep got {:?}", Voter::request(&*VOTER, data, rep_id, sl)[0]);
+    let response = Voter::request(&*VOTER, data, rep_id, sl);
+    println!("Rep got {:?}", response[0]);
 }

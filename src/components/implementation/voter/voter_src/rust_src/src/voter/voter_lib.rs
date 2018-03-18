@@ -3,12 +3,6 @@ use std::fmt;
 use voter::*;
 use voter::voter_config::*;
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum ReplicaState {
-    Init, /* initialized not running */
-    Processing,
-    Blocked,
-}
 #[derive(PartialEq)]
 pub enum VoteStatus {
     Fail(usize),              /*stores divergent replica id*/
@@ -18,8 +12,7 @@ pub enum VoteStatus {
 
 pub struct Replica {
     pub id: usize,
-    pub state: ReplicaState,
-    thd: Thread,
+    pub thd: Thread,
     pub data_buffer: [u8; BUFF_SIZE],
 }
 
@@ -29,15 +22,13 @@ pub struct Component {
     pub new_data: bool,
 }
 
-//manually implement as lib_composite::Thread doesn't impl debug
 impl fmt::Debug for Replica {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Replica: [replica_id - {} Thdid - {} State - {:?}]",
+            "Replica: [replica_id - {} Thdid - {}]",
             self.id,
             self.thd.thdid(),
-            self.state
         )
     }
 }
@@ -56,10 +47,8 @@ impl fmt::Debug for VoteStatus {
     }
 }
 
-//manually implement as lib_composite::Lock doesn't impl debug
 impl fmt::Debug for Component {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        //dont want to spend the resources to lock and print each replica
         write!(f, "Component: num_replicas:{}", self.num_replicas)
     }
 }
@@ -68,33 +57,14 @@ impl Replica {
     pub fn new(id: usize, mut thd: Thread) -> Replica {
         thd.set_param(ThreadParameter::Priority(voter_config::REP_PRIO));
         Replica {
-            state: ReplicaState::Processing,
             thd: thd,
             id,
             data_buffer: [0; BUFF_SIZE],
         }
     }
 
-    pub fn state_transition(&mut self, state: ReplicaState) {
-        //println!("        rep {}: old {:?} new {:?}",self.id,self.state,state);
-        assert!(self.state != state);
-        assert!(state != ReplicaState::Init);
-        if self.is_blocked() {
-            assert!(state == ReplicaState::Processing)
-        }
-        if self.is_processing() {
-            assert!(state == ReplicaState::Blocked)
-        }
-
-        self.state = state;
-    }
-
-    pub fn is_blocked(&self) -> bool {
-        return self.state == ReplicaState::Blocked;
-    }
-
     pub fn is_processing(&self) -> bool {
-        return self.state == ReplicaState::Processing;
+        self.thd.get_state() == sl_thd_state::SL_THD_RUNNABLE
     }
 
     //TODO!
@@ -103,6 +73,7 @@ impl Replica {
     }
 
     pub fn write(&mut self, data: [u8; BUFF_SIZE]) {
+        println!("rep {:?} write", self.id);
         for i in 0..BUFF_SIZE {
             self.data_buffer[i] = data[i];
         }
@@ -132,18 +103,14 @@ impl Component {
 
     pub fn wake_all(&mut self) {
         for replica in &mut self.replicas {
-            assert!(replica.state != ReplicaState::Init);
-            if replica.is_blocked() {
-                replica.state_transition(ReplicaState::Processing);
-                replica.thd.wakeup();
-            }
+            replica.thd.wakeup();
         }
     }
 
     pub fn collect_vote(&mut self) -> VoteStatus {
-        println!("Collecting Votes");
         let mut processing_replica_id = 0;
         let mut num_processing = 0;
+
         for replica in &self.replicas {
             if replica.is_processing() {
                 num_processing += 1;
@@ -152,6 +119,7 @@ impl Component {
                 processing_replica_id = replica.id;
             }
         }
+
         //if any of the replicas are still processing bail.
         if num_processing > 0 {
             return VoteStatus::Inconclusive(num_processing, processing_replica_id);
