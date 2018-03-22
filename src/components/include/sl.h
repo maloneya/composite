@@ -81,12 +81,15 @@ sl_thd_setprio(struct sl_thd *t, tcap_prio_t p)
 	t->prio = p;
 }
 
+/* for lazy retrieval of a child component thread in the parent */
+extern struct sl_thd *sl_thd_retrieve(thdid_t tid);
+
 static inline struct sl_thd *
 sl_thd_lkup(thdid_t tid)
 {
 	assert(tid != 0);
 	if (unlikely(tid > MAX_NUM_THREADS)) return NULL;
-	return sl_mod_thd_get(sl_thd_lookup_backend(tid));
+	return sl_thd_retrieve(tid);
 }
 
 static inline thdid_t
@@ -256,12 +259,17 @@ void sl_thd_yield_cs_exit(thdid_t tid);
 
 /* The entire thread allocation and free API */
 struct sl_thd *sl_thd_alloc(cos_thd_fn_t fn, void *data);
-struct sl_thd *sl_thd_aep_alloc(cos_aepthd_fn_t fn, void *data, int own_tcap);
+struct sl_thd *sl_thd_aep_alloc(cos_aepthd_fn_t fn, void *data, int own_tcap, cos_aepkey_t key);
 /*
  * This API creates a sl_thd object for this child component.
  * @comp: component created using cos_defkernel_api which includes initthd (with/without its own tcap & rcvcap).
  */
 struct sl_thd *sl_thd_comp_init(struct cos_defcompinfo *comp, int is_sched);
+
+struct sl_thd *sl_thd_initaep_alloc(struct cos_defcompinfo *comp, struct sl_thd *sched_thd, int is_sched, int own_tcap, cos_aepkey_t key);
+struct sl_thd *sl_thd_aep_alloc_ext(struct cos_defcompinfo *comp, struct sl_thd *sched_thd, thdclosure_index_t idx, int is_aep, int own_tcap, cos_aepkey_t key, arcvcap_t *extrcv);
+
+struct sl_thd *sl_thd_init_ext(struct cos_aep_info *aep, struct sl_thd *sched_thd);
 
 void           sl_thd_free(struct sl_thd *t);
 void           sl_thd_exit();
@@ -484,7 +492,6 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 			cycles_t abs_timeout = globals->timer_next;
 
 			assert(t != globals->sched_thd);
-			assert(t->properties & SL_THD_PROPERTY_OWN_TCAP);
 
 			sl_cs_enter();
 			if (likely(t->period)) abs_timeout = t->last_replenish + t->period;
