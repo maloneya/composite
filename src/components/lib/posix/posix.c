@@ -15,7 +15,7 @@
 #include <sl.h>
 #include <sl_lock.h>
 #include <sl_thd.h>
-#include <memmgr.h>
+#include "../../interface/capmgr/memmgr.h"
 
 volatile int* null_ptr = NULL;
 #define ABORT() do {int i = *null_ptr;} while(0)
