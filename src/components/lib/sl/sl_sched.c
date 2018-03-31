@@ -211,10 +211,7 @@ sl_thd_block(thdid_t tid)
 
 	sl_cs_enter();
 	t = sl_thd_curr();
-	if (unlikely(t->state == SL_THD_WOKEN)) {
-		t->state = SL_THD_RUNNABLE;
-	}
-	else if (sl_thd_block_no_cs(t, SL_THD_BLOCKED, 0)) {
+	if (sl_thd_block_no_cs(t, SL_THD_BLOCKED, 0)) {
 		sl_cs_exit();
 		return;
 	}

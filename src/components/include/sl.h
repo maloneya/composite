@@ -117,13 +117,6 @@ sl_cs_owner(void)
 	return sl__globals()->lock.u.s.owner == sl_thd_thdcap(sl_thd_curr());
 }
 
-static inline int
-sl_is_runnable(struct sl_thd *t)
-{
-	/* WOKE threads are still runnable */
-	return (t->state == SL_THD_RUNNABLE || t->state == SL_THD_WOKEN);
-}
-
 /* ...not part of the public API */
 /*
  * @csi: current critical section value
@@ -484,7 +477,6 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 			if (likely(ret == 0)) t->last_replenish = replenish;
 		}
 	}
-
 
 	assert(sl_thd_is_runnable(t));
 	sl_cs_exit();
