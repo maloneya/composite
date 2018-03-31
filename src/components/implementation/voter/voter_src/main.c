@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "../../interface/capmgr/memmgr.h"
 
 /* These are macro values rust needs, so we duplicate them here */
 vaddr_t       boot_mem_km_base            = BOOT_MEM_KM_BASE;
@@ -152,8 +153,8 @@ assign_thread_data(struct sl_thd *thread)
 
 	thread_data[thdid] = &backing_thread_data[thdid];
 
-
-	cos_thd_mod(ci, thdcap, &thread_data[thdid]);
+	//cos_thd_mod(ci, thdcap, &thread_data[thdid]);
+	memmgr_tls_alloc_and_set(&thread_data[thdid]);
 }
 
 extern void rust_init();
