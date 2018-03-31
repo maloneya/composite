@@ -41,6 +41,11 @@ sl_thdid_rs()
 	return sl_thdid();
 }
 
+thdid_t
+sl_thd_thdid_rs(struct sl_thd *t) {
+	return sl_thd_thdid(t);
+}
+
 struct sl_thd *
 sl_thd_lkup_rs(thdid_t tid)
 {
@@ -138,7 +143,7 @@ assign_thread_data(struct sl_thd *thread)
 {
 	struct cos_compinfo *ci     = cos_compinfo_get(cos_defcompinfo_curr_get());
 	thdcap_t             thdcap = sl_thd_thdcap(thread);
-	thdid_t              thdid  = thread->thdid;
+	thdid_t              thdid  = sl_thd_thdid(thread);
 
 	/* HACK: We setup some thread specific data to make musl stuff work with sl threads */
 	backing_thread_data[thdid].tid = thdid;
@@ -152,37 +157,17 @@ assign_thread_data(struct sl_thd *thread)
 }
 
 extern void rust_init();
-extern void test_call_rs();
-
-int rust_initialized = 0;
 
 void
-test_call(void)
+test_call()
 {
-	while (!rust_initialized);
-	printc("Settting up thd data\n");
-	struct cos_defcompinfo *dci = cos_defcompinfo_curr_get();
-	struct cos_aep_info    *aep = cos_sched_aep_get(dci);
-	assert(aep);
-
-	struct sl_thd * thd = sl_thd_curr();
-	assert(thd);
-	thd->aepinfo = aep;
-	assign_thread_data(thd);
-	printc("Making rust call\n");
-	test_call_rs();
-	printc("Finished rust call\n");
 	return;
 }
 
 void
 cos_init()
 {
-	//printc("Voter: Booting Replicas\n");
-	//voter_boot_find_cobjs();
-
 	printc("Entering rust\n");
-	rust_initialized = 1;
 	rust_init();
 }
 

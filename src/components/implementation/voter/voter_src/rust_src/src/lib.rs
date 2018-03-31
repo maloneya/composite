@@ -19,8 +19,7 @@ pub extern "C" fn test_call_rs() {
 #[no_mangle]
 pub extern "C" fn rust_init() {
     let api = unsafe { DefKernelAPI::assert_already_initialized() };
-    Sl::start_scheduler_loop_nonblock_without_initializing(api, 30, move |sl: Sl| {
-        // panic_trace::trace_init();
+    Sl::start_scheduler_loop_without_initializing(api, 30, move |sl: Sl| {
         println!("Entered Sched loop\n=========================");
         sl.current_thread()
             .set_param(ThreadParameter::Priority(voter::voter_config::REP_PRIO));
@@ -28,6 +27,7 @@ pub extern "C" fn rust_init() {
     });
 }
 
+//these tests really need to be rebuilt or this should be removed
 fn _run_tests(_sl: Sl) {
     // unit_tests::test_state_logic(sl,2);
     // unit_tests::test_wakeup(sl,2);
