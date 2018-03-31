@@ -1,0 +1,21 @@
+[package]
+name = "lib_composite"
+version = "0.7.0"
+authors = ["Gregor Peach <gregorpeach@gmail.com>"]
+license = "MIT"
+
+description = "Rust compatibility library for the composite operating system"
+
+repository = "https://github.com/Others/lib_composite"
+keywords = ["os", "composite", "compatibility"]
+
+[dependencies]
+#libc = { git = "https://github.com/Others/libc", branch = "patch-1", default-features = false }
+libc = "0.2"
+libc-extra = "0.0.15"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
