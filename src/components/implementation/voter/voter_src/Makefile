@@ -2,12 +2,14 @@
 ASM_OBJS=
 COMPONENT=sl_voter_cpt.o
 INTERFACES=voter
-DEPENDENCIES=
-ADDITIONAL_LIBS=-lcobj_format -lcos_defkernel_api -lcos_kernel_api -lsl -lheap -lsl_thd_static_backend -lsl_lock -lsl_mod_fprr
+DEPENDENCIES=capmgr
+ADDITIONAL_LIBS=$(LIBSLCAPMGR) -lcobj_format -lsl_thd_static_backend -lsl_lock -lsl_mod_fprr
 OBJLIBS += $(POSIX_LIB)
 
 export XARGO_RUST_SRC=$(shell rustc --print sysroot)/lib/rustlib/src/rust/src/
-export RUSTFLAGS=-L ../../../../lib/musl-1.1.11/lib/ -L lib
+export RUSTFLAGS=-L $(COMP_DIR)/lib/musl-1.1.11/lib -L $(COMP_DIR)/implementation/voter/voter_src/rust_src/lib
+export RUST_TARGET_PATH=$(COMP_DIR)/implementation/voter/voter_src/rust_src/
+
 CRATE_DIR=rust_src
 
 IF_LIB:=lib$(CRATE_DIR).a

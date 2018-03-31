@@ -2,6 +2,7 @@
 # component implementations rely on both the interfaces and the libs
 $(info components makeflag $(MAKEFLAGS))
 MAKEFLAGS=-I$(shell pwd)
+export COMP_DIR = $(shell pwd)
 
 ENABLE_STK:=${shell grep ENABLE_STACK_MANAGER include/cos_stkmgr_configure.h | awk '{print $$3 }' }
 
@@ -11,7 +12,7 @@ ifeq ($(ENABLE_STK), 1)
 export ENABLE_STACK_MANAGER:=1
 endif
 
-ifdef ENABLE_STACK_MANAGER 
+ifdef ENABLE_STACK_MANAGER
  $(info ####### Stack Manager is Enabled #######)
 else
  $(info ####### Stack Manager is Disabled #######)

@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Alexander Maloney <maloney.a12@gmail.com>"]
 
 [dependencies]
-lib_composite = {path = "/home/vagrant/SD/lib_composite"}
+lib_composite = {path = "../../../../../../lib_composite"}
 lazy_static = "1.0.0"
 
 [lib]
