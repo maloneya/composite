@@ -211,10 +211,7 @@ sl_thd_block(thdid_t tid)
 
 	sl_cs_enter();
 	t = sl_thd_curr();
-	if (unlikely(t->state == SL_THD_WOKEN)) {
-		t->state = SL_THD_RUNNABLE;
-	}
-	else if (sl_thd_block_no_cs(t, SL_THD_BLOCKED, 0)) {
+	if (sl_thd_block_no_cs(t, SL_THD_BLOCKED, 0)) {
 		sl_cs_exit();
 		return;
 	}
@@ -325,11 +322,6 @@ sl_thd_wakeup_no_cs_rm(struct sl_thd *t)
 {
 	assert(t);
 
-	if (unlikely(t->state == SL_THD_RUNNABLE)) {
-		t->state = SL_THD_WOKEN;
-		return 1;
-	}
-
 	assert(t->state == SL_THD_BLOCKED || t->state == SL_THD_BLOCKED_TIMEOUT);
 	t->state = SL_THD_RUNNABLE;
 	sl_mod_wakeup(sl_mod_thd_policy_get(t));
@@ -342,8 +334,13 @@ sl_thd_wakeup_no_cs(struct sl_thd *t)
 {
 	assert(t);
 	assert(sl_thdid() != sl_thd_thdid(t)); /* current thread is not allowed to wake itself up */
+	if (unlikely(t->state == SL_THD_RUNNABLE)) {
+		t->state = SL_THD_WOKEN;
+		return 1;
+	}
 
 	if (t->state == SL_THD_BLOCKED_TIMEOUT) sl_timeout_remove(t);
+
 	return sl_thd_wakeup_no_cs_rm(t);
 }
 
