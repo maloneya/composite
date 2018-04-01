@@ -480,6 +480,11 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 
 	assert(sl_thd_is_runnable(t));
 	sl_cs_exit();
+	if (t == sl__globals()->idle_thd) {
+		/* don't run idle thread.. instead run scheduler loop */
+		if (sl_thd_curr() == sl__globals()->sched_thd) return -EAGAIN;
+		else                                           t = sl__globals()->sched_thd;
+	}
 
 	ret = sl_thd_activate(t, tok);
 	/*
