@@ -45,17 +45,16 @@ write_bytes_to_stdout(const char *buf, size_t count)
 ssize_t
 cos_write(int fd, const void *buf, size_t count)
 {
-	return count;
-//	/* You shouldn't write to stdin anyway, so don't bother special casing it */
-//	if (fd == 1 || fd == 2) {
-//		sl_lock_take(&stdout_lock);
-//		write_bytes_to_stdout((const char *) buf, count);
-//		sl_lock_release(&stdout_lock);
-//		return count;
-//	} else {
-//		printc("fd: %d not supported!\n", fd);
-//		assert(0);
-//	}
+	/* You shouldn't write to stdin anyway, so don't bother special casing it */
+	if (fd == 1 || fd == 2) {
+		sl_lock_take(&stdout_lock);
+		write_bytes_to_stdout((const char *) buf, count);
+		sl_lock_release(&stdout_lock);
+		return count;
+	} else {
+		printc("fd: %d not supported!\n", fd);
+		assert(0);
+	}
 }
 
 ssize_t

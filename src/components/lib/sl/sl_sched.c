@@ -156,7 +156,6 @@ sl_thd_sched_block_no_cs(struct sl_thd *t, sl_thd_state_t block_type, cycles_t t
 	assert(t);
 	assert(block_type == SL_THD_BLOCKED_TIMEOUT || block_type == SL_THD_BLOCKED);
 
-	printc("[SB:%d]", sl_thd_thdid(t));
 	/*
 	 * If an AEP/a child COMP was blocked and an interrupt caused it to wakeup and run
 	 * but blocks itself before the scheduler could see the wakeup event.. Scheduler
@@ -188,7 +187,6 @@ sl_thd_block_no_cs(struct sl_thd *t, sl_thd_state_t block_type, cycles_t timeout
 	assert(t);
 	assert(cos_thdid() == sl_thd_thdid(t)); /* only current thread is allowed to block itself */
 	assert(block_type == SL_THD_BLOCKED_TIMEOUT || block_type == SL_THD_BLOCKED);
-	printc("[B%d:%d]", block_type, sl_thd_thdid(t));
 
 	if (unlikely(t->state == SL_THD_WOKEN)) {
 		t->state = SL_THD_RUNNABLE;
@@ -295,7 +293,6 @@ int
 sl_thd_sched_wakeup_no_cs(struct sl_thd *t)
 {
 	assert(t);
-	printc("[SW:%d]", sl_thd_thdid(t));
 
 	/*
 	 * If a thread was preempted and scheduler updated it to RUNNABLE status and if that AEP
@@ -325,7 +322,6 @@ sl_thd_wakeup_no_cs_rm(struct sl_thd *t)
 {
 	assert(t);
 
-	printc("[WR:%d]", sl_thd_thdid(t));
 	assert(t->state == SL_THD_BLOCKED || t->state == SL_THD_BLOCKED_TIMEOUT);
 	t->state = SL_THD_RUNNABLE;
 	sl_mod_wakeup(sl_mod_thd_policy_get(t));
@@ -338,7 +334,6 @@ sl_thd_wakeup_no_cs(struct sl_thd *t)
 {
 	assert(t);
 	assert(sl_thdid() != sl_thd_thdid(t)); /* current thread is not allowed to wake itself up */
-	printc("[W:%d]", sl_thd_thdid(t));
 	if (unlikely(t->state == SL_THD_RUNNABLE)) {
 		t->state = SL_THD_WOKEN;
 		return 1;
@@ -375,7 +370,6 @@ void
 sl_thd_yield_cs_exit(thdid_t tid)
 {
 	struct sl_thd *t = sl_thd_curr();
-	printc("[Y:%d]", sl_thd_thdid(t));
 
 	if (tid) {
 		struct sl_thd *to = sl_thd_lkup(tid);
