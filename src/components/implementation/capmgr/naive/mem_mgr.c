@@ -93,7 +93,7 @@ _memmgr_tls_alloc_and_set(void *area)
 	addr       = memmgr_tls_alloc(tid);
 	assert(addr);
 
-	cos_thd_mod(rci, dst_thdcap, addr);
+	cos_thd_mod(cur_ci, dst_thdcap, addr);
 
 	return addr;
 }

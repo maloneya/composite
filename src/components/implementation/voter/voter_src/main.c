@@ -137,7 +137,6 @@ struct pthread {
 };
 
 struct pthread backing_thread_data[SL_MAX_NUM_THDS];
-void *         thread_data[SL_MAX_NUM_THDS];
 
 void
 assign_thread_data(struct sl_thd *thread)
@@ -151,10 +150,10 @@ assign_thread_data(struct sl_thd *thread)
 	backing_thread_data[thdid].robust_list.head = &backing_thread_data[thdid].robust_list.head;
 	backing_thread_data[thdid].tsd = calloc(PTHREAD_KEYS_MAX, sizeof(void*));
 
-	thread_data[thdid] = &backing_thread_data[thdid];
+	void *addr = memmgr_tls_alloc(thdid);
+	cos_thd_mod(ci, thdcap, addr);
 
-	//cos_thd_mod(ci, thdcap, &thread_data[thdid]);
-	memmgr_tls_alloc_and_set(&thread_data[thdid]);
+	*(void **)addr = &backing_thread_data[thdid];
 }
 
 extern void rust_init();
@@ -168,7 +167,12 @@ test_call()
 void
 cos_init()
 {
-	printc("Entering rust\n");
+	printc("Entering rust!\n");
+	struct sl_thd *t;
+
+	t = sl_thd_curr();
+	assign_thread_data(t);
+
 	rust_init();
 }
 

@@ -109,7 +109,6 @@ impl Sl {
     }
 
     pub fn spawn<F: FnBox(Sl) + Send + 'static>(&self, entrypoint: F) -> Thread {
-        println!("Rust creating thread");
         let boxed_fn = Box::new(FnBoxWrapper {
             inner: Box::new(entrypoint)
         });
