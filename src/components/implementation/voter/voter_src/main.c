@@ -16,7 +16,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sched.h>
+#include <schedinit.h>
 #include "../../interface/capmgr/memmgr.h"
+#include "../../sched/sched_info.h"
+
+extern int parent_schedinit_child(void);
+
+#define FIXED_PRIO 2
+#define FIXED_BUDGET_MS 2000
+#define FIXED_PERIOD_MS 10000
 
 /* These are macro values rust needs, so we duplicate them here */
 vaddr_t       boot_mem_km_base            = BOOT_MEM_KM_BASE;
@@ -161,18 +170,54 @@ extern void rust_init();
 void
 test_call()
 {
+	printc("Voter got call\n");
 	return;
+}
+
+static int
+schedinit_self(void)
+{
+	/* if my init is done and i've all child inits */
+	if (self_init && num_child_init == sched_num_childsched_get()) {
+		if (parent_schedinit_child() < 0) assert(0);
+
+		return 0;
+	}
+
+	return 1;
+}
+
+
+void
+sched_child_init(struct sched_childinfo *schedci)
+{
+	struct sl_thd *initthd = NULL;
+	printc("Voter Initializing Replica\n");
+
+	assert(schedci);
+	initthd = sched_child_initthd_get(schedci);
+	assert(initthd);
+	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_PRIO, FIXED_PRIO));
+	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));
+	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_BUDGET, FIXED_BUDGET_MS));
 }
 
 void
 cos_init()
 {
-	printc("Entering rust!\n");
 	struct sl_thd *t;
 
 	t = sl_thd_curr();
 	assign_thread_data(t);
 
+	sched_childinfo_init();
+
+	self_init = 1;
+
+	while (schedinit_self()) sl_thd_block_periodic(0);
+	PRINTLOG(PRINT_DEBUG, "Replica boot complete\n");
+
+	printc("Entering rust!\n");
 	rust_init();
 }
 

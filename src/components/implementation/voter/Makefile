@@ -1,3 +1,3 @@
-INTERFACES=voter
+INTERFACES=voter sched schedinit
 
 include ../Makefile.subdir
