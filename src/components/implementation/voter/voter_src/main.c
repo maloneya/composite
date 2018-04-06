@@ -23,7 +23,7 @@
 
 extern int parent_schedinit_child(void);
 
-#define FIXED_PRIO 2
+#define FIXED_PRIO 5
 #define FIXED_BUDGET_MS 2000
 #define FIXED_PERIOD_MS 10000
 
@@ -165,14 +165,35 @@ assign_thread_data(struct sl_thd *thread)
 	*(void **)addr = &backing_thread_data[thdid];
 }
 
+#define MAX_REPS 3
+
+//voter init also begins sched loop
 extern void rust_init();
+extern void test_call_rs();
+
+thdid_t replica_thdids[MAX_REPS];
+
+thdid_t *
+get_replica_thdids() {
+	return replica_thdids;
+}
+
 
 void
 test_call()
 {
+
 	printc("Voter got call\n");
+	struct sl_thd *t = sl_thd_curr();
+	assign_thread_data(t);
+	printc("entering rust\n");
+	test_call_rs();
+	printc("exited rust\n");
 	return;
 }
+
+//request
+
 
 static int
 schedinit_self(void)
@@ -197,6 +218,9 @@ sched_child_init(struct sched_childinfo *schedci)
 	assert(schedci);
 	initthd = sched_child_initthd_get(schedci);
 	assert(initthd);
+	replica_thdids[schedci->id % 3] = sl_thd_thdid(initthd);
+	printc("Stored tid %d\n",replica_thdids[schedci->id % 3]);
+
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_PRIO, FIXED_PRIO));
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_BUDGET, FIXED_BUDGET_MS));
@@ -218,6 +242,7 @@ cos_init()
 	PRINTLOG(PRINT_DEBUG, "Replica boot complete\n");
 
 	printc("Entering rust!\n");
+	//voter init also begins sched loop
 	rust_init();
 }
 

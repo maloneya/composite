@@ -1,4 +1,5 @@
 use lib_composite::sl::{Sl, Thread, ThreadParameter};
+use lib_composite::sys::types;
 use std::fmt;
 use voter::*;
 use voter::voter_config::*;
@@ -81,24 +82,24 @@ impl Replica {
 }
 
 impl Component {
-    pub fn new(num_replicas: usize, sl: Sl, thd_entry: fn(sl: Sl, replica_id: usize)) -> Component {
-        assert!(num_replicas <= MAX_REPS);
-        //create new Component
-        let mut comp = Component {
-            replicas: Vec::with_capacity(num_replicas),
-            num_replicas,
-            new_data: false,
-        };
+    pub fn new(thread_ids: [types::thdid_t; MAX_REPS], sl: Sl) -> Component {
 
-        //create replicas,start their threads,add them to the component
-        for i in 0..num_replicas {
-            let thd = sl.spawn(move |sl: Sl| {
-                thd_entry(sl, i);
-            });
-            comp.replicas.push(Replica::new(i, thd));
+        let mut replicas = Vec::new();
+        let mut num_replicas = 0;
+        println!("{:?}", thread_ids);
+        for thread_id in thread_ids.iter() {
+            if *thread_id <= 0 {break}
+
+            /* num_replicas doubling as rep_id here */
+            replicas.push(Replica::new(num_replicas, Thread {thread_id: *thread_id}));
+            num_replicas += 1;
         }
 
-        comp
+        Component {
+            replicas: replicas,
+            num_replicas,
+            new_data: false,
+        }
     }
 
     pub fn wake_all(&mut self) {

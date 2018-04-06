@@ -22,7 +22,7 @@ impl !Sync for Sl{}
 
 #[derive(Clone)]
 pub struct Thread {
-    thread_id: types::thdid_t,
+    pub thread_id: types::thdid_t,
 }
 
 impl PartialEq<Self> for Thread {
@@ -50,7 +50,6 @@ impl Sl {
     pub fn start_scheduler_loop_without_initializing<F: FnBox(Sl) + Send + 'static>(_: DefKernelAPI, root_thread_priority: u32, entrypoint: F) {
         let mut root_thread = Sl.spawn(entrypoint);
         root_thread.set_param(ThreadParameter::Priority(root_thread_priority));
-
         unsafe {
             sl::sl_sched_loop()
         }

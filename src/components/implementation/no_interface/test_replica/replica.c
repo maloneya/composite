@@ -10,6 +10,5 @@ void cos_init(void)
 	printc("Invoking voter interface:\n");
 	test_call();
 
-	cos_sinv(BOOT_CAPTBL_SINV_CAP, 1, 2, 3, 4);
 	return;
 }

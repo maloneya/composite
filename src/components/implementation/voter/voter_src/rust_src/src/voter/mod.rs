@@ -8,29 +8,50 @@ use lib_composite::sl_lock::{Lock, LockGuard};
 
 use lib_composite::sl::Sl;
 use lib_composite::sys::sl::sl_thd_state;
+use lib_composite::sys::types;
 use std::ops::DerefMut;
 use std::mem::replace;
+
+extern {
+    fn get_replica_thdids() -> *mut types::thdid_t;
+}
 
 pub struct Voter {
     application: voter_lib::Component,
 }
 
+lazy_static! {
+    static ref VOTER:Lock<Voter> = unsafe {
+        Lock::new(Sl::assert_scheduler_already_started(),
+                  Voter::new(Sl::assert_scheduler_already_started())
+    )};
+}
+
 impl Voter {
-    pub fn new(app_reps: usize, app_entry: fn(sl: Sl, replica_id: usize), sl: Sl) -> Voter {
+    pub fn new(sl: Sl) -> Voter {
+        let mut tids:[types::thdid_t;MAX_REPS] = [0;MAX_REPS];
+
+        unsafe {
+            let tid_ptr: *mut types::thdid_t = get_replica_thdids();
+            for i in 0..MAX_REPS {
+                tids[i] = *tid_ptr.offset(i as isize);
+            }
+        }
+
+
         Voter {
-            application: voter_lib::Component::new(app_reps, sl, app_entry),
+            application: voter_lib::Component::new(tids, sl),
         }
     }
 
-    pub fn monitor_application(voter_lock: &Lock<Voter>, sl: Sl) {
+    pub fn monitor_application(sl: Sl) {
         let mut consecutive_inconclusive = 0;
-
         loop {
-            match Voter::monitor_vote(voter_lock, consecutive_inconclusive, sl) {
+            match Voter::monitor_vote(&*VOTER, consecutive_inconclusive, sl) {
                 VoteStatus::Success(consensus) => {
                     consecutive_inconclusive = 0;
                     let application_data = Voter::contact_server(consensus);
-                    Voter::transfer(voter_lock, application_data, sl);
+                    Voter::transfer(&*VOTER, application_data, sl);
                 }
                 VoteStatus::Inconclusive(num_processing, _rep) => {
                     //track inconclusive for the case where only one replica is still processing
