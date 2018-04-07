@@ -9,6 +9,8 @@ pub type microsec_t = u64;
 pub type tcap_prio_t = u64;
 pub type thdid_t = c_ushort;
 
+pub type spdid_t = c_ushort;
+
 pub type vaddr_t = c_ulong;
 
 // Capability types

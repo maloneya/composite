@@ -6,13 +6,13 @@ use voter::voter_config::*;
 
 #[derive(PartialEq)]
 pub enum VoteStatus {
-    Fail(usize),              /*stores divergent replica id*/
-    Inconclusive(u8, usize),  /*number of replicas in processing state, id of replica in processing*/
+    Fail(types::spdid_t),              /*stores divergent replica id*/
+    Inconclusive(u8, types::spdid_t),  /*number of replicas in processing state, id of replica in processing*/
     Success([u8; BUFF_SIZE]), /*agreed upon message*/
 }
 
 pub struct Replica {
-    pub id: usize,
+    pub id:  types::spdid_t,
     pub thd: Thread,
     pub data_buffer: [u8; BUFF_SIZE],
 }
@@ -55,7 +55,7 @@ impl fmt::Debug for Component {
 }
 
 impl Replica {
-    pub fn new(id: usize, mut thd: Thread) -> Replica {
+    pub fn new(id: types::spdid_t, mut thd: Thread) -> Replica {
         thd.set_param(ThreadParameter::Priority(voter_config::REP_PRIO));
         Replica {
             thd: thd,
@@ -82,16 +82,17 @@ impl Replica {
 }
 
 impl Component {
-    pub fn new(thread_ids: [types::thdid_t; MAX_REPS], sl: Sl) -> Component {
+    pub fn new(thread_ids: [types::thdid_t; MAX_REPS], spdids: [types::spdid_t; MAX_REPS], sl: Sl) -> Component {
 
         let mut replicas = Vec::new();
         let mut num_replicas = 0;
         println!("{:?}", thread_ids);
-        for thread_id in thread_ids.iter() {
+        for vals in thread_ids.iter().zip(spdids.iter()) {
+            let (thread_id,spdid) = vals;
             if *thread_id <= 0 {break}
 
             /* num_replicas doubling as rep_id here */
-            replicas.push(Replica::new(num_replicas, Thread {thread_id: *thread_id}));
+            replicas.push(Replica::new(*spdid, Thread {thread_id: *thread_id}));
             num_replicas += 1;
         }
 
@@ -99,6 +100,23 @@ impl Component {
             replicas: replicas,
             num_replicas,
             new_data: false,
+        }
+    }
+
+    pub fn get_replica_by_spdid(& mut self, spdid: types::spdid_t) -> Option<& mut Replica> {
+        let mut found = MAX_REPS + 1;
+        for (i, replica) in (&mut self.replicas).iter_mut().enumerate() {
+            if replica.id == spdid {
+                found = i;
+                break;
+            }
+        }
+
+        if found != MAX_REPS + 1 {
+            Some(&mut self.replicas[found])
+        }
+        else {
+            None
         }
     }
 
@@ -128,9 +146,7 @@ impl Component {
 
         //check the request each replica has made
         if !self.validate_msgs() {
-            let faulted = self.find_faulted_msg();
-            assert!(faulted > -1);
-            return VoteStatus::Fail(faulted as usize);
+            return VoteStatus::Fail(self.find_faulted_msg());
         }
 
         return VoteStatus::Success(self.replicas[0].data_buffer.clone());
@@ -148,7 +164,7 @@ impl Component {
         true
     }
     //TODO return result
-    pub fn find_faulted_msg(&self) -> i16 {
+    pub fn find_faulted_msg(&self) -> types::spdid_t {
         //store the number of replicas that agree, and rep id of sender
         let mut concensus: [u8; MAX_REPS] = [0; MAX_REPS];
 
@@ -169,14 +185,15 @@ impl Component {
         }
         //go through consensus to get the rep id that sent the msg with least agreement
         let mut min: u8 = 4;
-        let mut faulted: i16 = -1;
-        for (rep, msg_votes) in concensus.iter().enumerate() {
+        let mut faulted:usize = 4;
+        for (rep_idx, msg_votes) in concensus.iter().enumerate() {
             if *msg_votes < min {
                 min = *msg_votes;
-                faulted = rep as i16;
+                faulted = rep_idx;
             }
         }
-        return faulted;
+        assert_ne!(faulted,4);
+        return self.replicas[faulted].id;
     }
 }
 

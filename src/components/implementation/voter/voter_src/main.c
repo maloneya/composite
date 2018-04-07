@@ -172,10 +172,17 @@ extern void rust_init();
 extern void test_call_rs();
 
 thdid_t replica_thdids[MAX_REPS];
+spdid_t replica_ids[MAX_REPS];
 
 thdid_t *
 get_replica_thdids() {
 	return replica_thdids;
+}
+
+
+spdid_t *
+get_replica_ids() {
+	return replica_ids;
 }
 
 
@@ -193,6 +200,12 @@ test_call()
 }
 
 //request
+//unsure exactly what type this should return - do sinv returns work just like functions ? i think so
+void *
+request()
+{
+
+}
 
 
 static int
@@ -219,7 +232,7 @@ sched_child_init(struct sched_childinfo *schedci)
 	initthd = sched_child_initthd_get(schedci);
 	assert(initthd);
 	replica_thdids[schedci->id % 3] = sl_thd_thdid(initthd);
-	printc("Stored tid %d\n",replica_thdids[schedci->id % 3]);
+	replica_ids[schedci->id % 3] = schedci->id;
 
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_PRIO, FIXED_PRIO));
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));

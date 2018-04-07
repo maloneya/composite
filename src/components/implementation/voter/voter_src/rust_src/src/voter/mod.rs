@@ -14,6 +14,7 @@ use std::mem::replace;
 
 extern {
     fn get_replica_thdids() -> *mut types::thdid_t;
+    fn get_replica_ids()    -> *mut types::spdid_t;
 }
 
 pub struct Voter {
@@ -30,17 +31,21 @@ lazy_static! {
 impl Voter {
     pub fn new(sl: Sl) -> Voter {
         let mut tids:[types::thdid_t;MAX_REPS] = [0;MAX_REPS];
+        let mut ids: [types::spdid_t;MAX_REPS] = [0;MAX_REPS];
 
         unsafe {
             let tid_ptr: *mut types::thdid_t = get_replica_thdids();
+            let id_ptr:  *mut types::spdid_t = get_replica_ids();
+
             for i in 0..MAX_REPS {
                 tids[i] = *tid_ptr.offset(i as isize);
+                ids[i]  = *id_ptr.offset(i as isize);
             }
         }
 
 
         Voter {
-            application: voter_lib::Component::new(tids, sl),
+            application: voter_lib::Component::new(tids,ids,sl),
         }
     }
 
@@ -71,11 +76,11 @@ impl Voter {
         let vote = voter.deref_mut().application.collect_vote();
         match vote {
             VoteStatus::Success(_consensus) => (),
-            VoteStatus::Fail(replica_id) => voter.application.replicas[replica_id].recover(),
+            VoteStatus::Fail(replica_id) => voter.application.get_replica_by_spdid(replica_id).unwrap().recover(),
             VoteStatus::Inconclusive(_num_processing, replica_id) => {
                 if consecutive_inconclusive > voter_config::MAX_INCONCLUSIVE {
                     println!("Inconclusive breach!");
-                    voter.application.replicas[replica_id].recover();
+                    voter.application.get_replica_by_spdid(replica_id).unwrap().recover();
                 }
             }
         }
@@ -97,20 +102,21 @@ impl Voter {
         voter.deref_mut().application.wake_all();
     }
 
-    pub fn request(voter_lock: &Lock<Voter>, data: [u8; BUFF_SIZE], replica_id: usize, sl: Sl) -> [u8; BUFF_SIZE] {
+    //data array format - [u8; BUFF_SIZE]
+    pub fn request(data: [u8; BUFF_SIZE], replica_id: types::spdid_t, sl: Sl) -> [u8; BUFF_SIZE] {
         println!("Rep {} making request", replica_id);
         {
             //is there a way to remove the need for this lock?
-            let mut voter = Voter::try_lock_and_wait(voter_lock, sl);
-            voter.application.replicas[replica_id].write(data);
+            let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
+            voter.application.get_replica_by_spdid(replica_id).unwrap().write(data);
         }
 
         sl.block();
 
         //get data returned from request.
-        let mut voter = Voter::try_lock_and_wait(voter_lock, sl);
+        let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
         replace(
-            &mut voter.application.replicas[replica_id].data_buffer,
+            &mut voter.application.get_replica_by_spdid(replica_id).unwrap().data_buffer,
             [0; BUFF_SIZE],
         )
     }
