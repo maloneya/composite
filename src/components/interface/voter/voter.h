@@ -1,7 +1,7 @@
 #ifndef VOTER_H
 #define VOTER_H
 
-void test_call(void);
+int voter_write(int shdmem_id, int size);
 
 
 #endif /* VOTER_H */

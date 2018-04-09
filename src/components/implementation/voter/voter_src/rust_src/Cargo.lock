@@ -45,6 +45,8 @@ version = "0.1.0"
 dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lib_composite 0.7.0",
+ "libc 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc-extra 0.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]

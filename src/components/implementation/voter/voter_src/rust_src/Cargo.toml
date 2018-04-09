@@ -6,6 +6,8 @@ authors = ["Alexander Maloney <maloney.a12@gmail.com>"]
 [dependencies]
 lib_composite = {path = "../../../../../../lib_composite"}
 lazy_static = "1.0.0"
+libc = "0.2"
+libc-extra = "0.0.15"
 
 [lib]
 crate-type = ["staticlib"]

@@ -9,4 +9,4 @@
 
 .text
 
-cos_asm_server_stub(test_call)
+cos_asm_server_stub(voter_write)

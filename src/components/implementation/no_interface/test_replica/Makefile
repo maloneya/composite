@@ -2,7 +2,7 @@ C_OBJS=replica.o
 ASM_OBJS=
 COMPONENT=test_replica.o
 INTERFACES=
-DEPENDENCIES=voter
+DEPENDENCIES=voter capmgr
 IF_LIB=
 ADDITIONAL_LIBS=-lcobj_format -lcos_kernel_api
 

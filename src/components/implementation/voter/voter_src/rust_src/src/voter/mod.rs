@@ -11,10 +11,12 @@ use lib_composite::sys::sl::sl_thd_state;
 use lib_composite::sys::types;
 use std::ops::DerefMut;
 use std::mem::replace;
+use std::slice;
 
 extern {
     fn get_replica_thdids() -> *mut types::thdid_t;
     fn get_replica_ids()    -> *mut types::spdid_t;
+    fn voter_done_initalizing();
 }
 
 pub struct Voter {
@@ -23,30 +25,26 @@ pub struct Voter {
 
 lazy_static! {
     static ref VOTER:Lock<Voter> = unsafe {
-        Lock::new(Sl::assert_scheduler_already_started(),
-                  Voter::new(Sl::assert_scheduler_already_started())
+        Lock::new(Sl::assert_scheduler_already_started(),Voter::new()
     )};
 }
 
 impl Voter {
-    pub fn new(sl: Sl) -> Voter {
-        let mut tids:[types::thdid_t;MAX_REPS] = [0;MAX_REPS];
-        let mut ids: [types::spdid_t;MAX_REPS] = [0;MAX_REPS];
-
+    pub fn new() -> Voter {
+        let tids;
+        let ids;
+        /* get tid and spdid from a global store in C */
         unsafe {
-            let tid_ptr: *mut types::thdid_t = get_replica_thdids();
-            let id_ptr:  *mut types::spdid_t = get_replica_ids();
+            tids = slice::from_raw_parts_mut(get_replica_thdids(),MAX_REPS);
+            ids = slice::from_raw_parts_mut(get_replica_ids(),MAX_REPS)
+        };
 
-            for i in 0..MAX_REPS {
-                tids[i] = *tid_ptr.offset(i as isize);
-                ids[i]  = *id_ptr.offset(i as isize);
-            }
-        }
+        let v = Voter {
+            application: voter_lib::Component::new(tids,ids),
+        };
 
-
-        Voter {
-            application: voter_lib::Component::new(tids,ids,sl),
-        }
+        unsafe {voter_done_initalizing()};
+        v
     }
 
     pub fn monitor_application(sl: Sl) {
@@ -102,13 +100,17 @@ impl Voter {
         voter.deref_mut().application.wake_all();
     }
 
-    //data array format - [u8; BUFF_SIZE]
-    pub fn request(data: [u8; BUFF_SIZE], replica_id: types::spdid_t, sl: Sl) -> [u8; BUFF_SIZE] {
+    pub fn request(data: &mut [u8], op:i32, replica_id: types::spdid_t) -> [u8; BUFF_SIZE] {
+        let sl:Sl;
+        unsafe {
+            sl = Sl::assert_scheduler_already_started();
+        }
+
         println!("Rep {} making request", replica_id);
         {
             //is there a way to remove the need for this lock?
             let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
-            voter.application.get_replica_by_spdid(replica_id).unwrap().write(data);
+            voter.application.get_replica_by_spdid(replica_id).unwrap().write(op,data);
         }
 
         sl.block();

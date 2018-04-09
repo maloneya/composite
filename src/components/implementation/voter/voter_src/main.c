@@ -21,6 +21,8 @@
 #include "../../interface/capmgr/memmgr.h"
 #include "../../sched/sched_info.h"
 
+#include "application_interface.h"
+
 extern int parent_schedinit_child(void);
 
 #define FIXED_PRIO 5
@@ -98,6 +100,11 @@ sl_lock_release_rs(struct sl_lock *lock)
 	return sl_lock_release(lock);
 }
 
+spdid_t
+cos_inv_token_rs() {
+	return cos_inv_token();
+}
+
 void
 print_hack(int n) {
 	printc("rust hit %d \n",n);
@@ -167,44 +174,59 @@ assign_thread_data(struct sl_thd *thread)
 
 #define MAX_REPS 3
 
-//voter init also begins sched loop
-extern void rust_init();
-extern void test_call_rs();
+/*rust init also begins sched loop */
+extern void  rust_init();
+extern void *replica_request();
+
+int voter_initialized = 0;
 
 thdid_t replica_thdids[MAX_REPS];
 spdid_t replica_ids[MAX_REPS];
+/* c->rust function parameter corruption workaround */
+int request_data[MAX_REPS][3];
 
 thdid_t *
 get_replica_thdids() {
 	return replica_thdids;
 }
 
-
 spdid_t *
 get_replica_ids() {
 	return replica_ids;
 }
 
-
 void
-test_call()
-{
+voter_done_initalizing() {
+	voter_initialized = 1;
+}
 
-	printc("Voter got call\n");
-	struct sl_thd *t = sl_thd_curr();
-	assign_thread_data(t);
-	printc("entering rust\n");
-	test_call_rs();
-	printc("exited rust\n");
-	return;
+int *
+get_request_data(spdid_t id) {
+	return request_data[id % MAX_REPS];
 }
 
 //request
 //unsure exactly what type this should return - do sinv returns work just like functions ? i think so
 void *
-request()
+request(int shdmem_id, int opcode, int data_size)
 {
+	while (!voter_initialized) sl_thd_yield(0);
 
+	struct sl_thd *t = sl_thd_curr();
+	assert(t);
+	/* Set up Backing pthread structure in TLS for rust */
+	assign_thread_data(t);
+
+	vaddr_t shdmem_addr;
+	int ret = memmgr_shared_page_map(shdmem_id, &shdmem_addr);
+	assert(ret > -1 && shdmem_addr);
+	/* store request data for each replica in a global store accessible from Rust */
+	spdid_t spdid = cos_inv_token();
+	request_data[spdid % MAX_REPS][0] = data_size;
+	request_data[spdid % MAX_REPS][1] = opcode;
+	request_data[spdid % MAX_REPS][2] = shdmem_addr;
+	/* This will trigger a call back to get the reqeust_data */
+	return replica_request();
 }
 
 
@@ -231,8 +253,8 @@ sched_child_init(struct sched_childinfo *schedci)
 	assert(schedci);
 	initthd = sched_child_initthd_get(schedci);
 	assert(initthd);
-	replica_thdids[schedci->id % 3] = sl_thd_thdid(initthd);
-	replica_ids[schedci->id % 3] = schedci->id;
+	replica_thdids[schedci->id % MAX_REPS] = sl_thd_thdid(initthd);
+	replica_ids[schedci->id % MAX_REPS] = schedci->id;
 
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_PRIO, FIXED_PRIO));
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));

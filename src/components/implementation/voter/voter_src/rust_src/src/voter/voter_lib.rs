@@ -73,20 +73,24 @@ impl Replica {
         panic!("Replica {:?} must be recovered", self.id);;
     }
 
-    pub fn write(&mut self, data: [u8; BUFF_SIZE]) {
+    pub fn write(&mut self, op:i32, data: &mut [u8]) {
         println!("rep {:?} write", self.id);
-        for i in 0..BUFF_SIZE {
-            self.data_buffer[i] = data[i];
-        }
+        assert!(data.len() + 2 < BUFF_SIZE);
+        /* pack replica data buffer with request information */
+        self.data_buffer[0] = op as u8;
+        self.data_buffer[1] = data.len() as u8;
+        self.data_buffer[2..2+data.len()].copy_from_slice(data);
+        println!("replica stored request {:?}",self.data_buffer);
     }
 }
 
 impl Component {
-    pub fn new(thread_ids: [types::thdid_t; MAX_REPS], spdids: [types::spdid_t; MAX_REPS], sl: Sl) -> Component {
+    pub fn new(thread_ids:&mut [types::thdid_t], spdids:&mut [types::spdid_t]) -> Component {
 
         let mut replicas = Vec::new();
         let mut num_replicas = 0;
         println!("{:?}", thread_ids);
+        println!("{:?}", spdids);
         for vals in thread_ids.iter().zip(spdids.iter()) {
             let (thread_id,spdid) = vals;
             if *thread_id <= 0 {break}
@@ -104,6 +108,7 @@ impl Component {
     }
 
     pub fn get_replica_by_spdid(& mut self, spdid: types::spdid_t) -> Option<& mut Replica> {
+        println!("looking up {:?}", spdid);
         let mut found = MAX_REPS + 1;
         for (i, replica) in (&mut self.replicas).iter_mut().enumerate() {
             if replica.id == spdid {
