@@ -12,6 +12,7 @@ use lib_composite::sys::types;
 use std::ops::DerefMut;
 use std::mem::replace;
 use std::slice;
+use std::boxed::Box;
 
 extern {
     fn get_num_replicas() -> i32;
@@ -38,12 +39,10 @@ impl Voter {
 
     pub fn initialize(sl:Sl) {
         loop {
-            let mut initialized = true;
-            {
+            if {
                 let voter = Voter::try_lock_and_wait(&*VOTER, sl);
-                initialized = voter.application.replicas_initialized()
-            }
-            if initialized {
+                voter.application.replicas_initialized()
+            } {
                 break;
             }
             else {
@@ -55,7 +54,7 @@ impl Voter {
         Voter::monitor_application(sl);
     }
 
-    pub fn replica_done_initializing() {
+    pub fn replica_done_initializing(addr: *mut u8) {
         let sl;
         unsafe {
             sl = Sl::assert_scheduler_already_started();
@@ -65,7 +64,11 @@ impl Voter {
 
         for replica in &mut voter.application.replicas {
             if replica.id == 0 {
-                unsafe {replica.id = cos_inv_token_rs();}
+                unsafe {
+                    replica.id = cos_inv_token_rs();
+                    let slice = slice::from_raw_parts_mut(addr,4096);
+                    replica.shrdmem = Some(Box::from_raw(slice));
+                }
                 return;
             }
         }
@@ -125,7 +128,7 @@ impl Voter {
         voter.deref_mut().application.wake_all();
     }
 
-    pub fn request(data: &mut [u8], op:i32, replica_id: types::spdid_t) -> [u8; BUFF_SIZE] {
+    pub fn request(data_size: i32, op:i32, replica_id: types::spdid_t) -> [u8; BUFF_SIZE] {
         let sl:Sl;
         unsafe {
             sl = Sl::assert_scheduler_already_started();
@@ -135,17 +138,14 @@ impl Voter {
         {
             //is there a way to remove the need for this lock?
             let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
-            voter.application.get_replica_by_spdid(replica_id).unwrap().write(op,data);
+            voter.application.get_replica_by_spdid(replica_id).unwrap().request(op,data_size,sl);
         }
 
         sl.block();
 
         //get data returned from request.
         let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
-        replace(
-            &mut voter.application.get_replica_by_spdid(replica_id).unwrap().data_buffer,
-            [0; BUFF_SIZE],
-        )
+        voter.application.get_replica_by_spdid(replica_id).unwrap().get_response()
     }
 
     //unsure if this is actually still necessary. now that we fixed the WOKE race

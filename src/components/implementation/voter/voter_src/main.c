@@ -172,12 +172,14 @@ assign_thread_data(struct sl_thd *thread)
 	*(void **)addr = &backing_thread_data[thdid];
 }
 
+/******************************* Voter boot up code *************************/
+
 #define MAX_REPS 3
 
 /*rust init also begins sched loop */
 extern void  rust_init();
 extern void *replica_request();
-extern void  replica_done_initializing_rust();
+extern void  replica_done_initializing_rust(vaddr_t shdmem_addr);
 
 int voter_initialized = 0;
 int num_replicas = 0;
@@ -185,6 +187,7 @@ int num_replicas = 0;
 /* c->rust function parameter corruption workaround */
 int request_data[MAX_REPS][3];
 
+/* rust callbacks */
 void
 voter_done_initalizing() {
 	voter_initialized = 1;
@@ -202,9 +205,18 @@ get_num_replicas()
 }
 
 void
-replica_done_initializing()
+replica_done_initializing(int shdmem_id)
 {
-	replica_done_initializing_rust();
+
+	struct sl_thd *t = sl_thd_curr();
+	assert(t);
+	/* Set up Backing pthread structure in TLS for rust */
+	assign_thread_data(t);
+
+	vaddr_t shdmem_addr;
+	int ret = memmgr_shared_page_map(shdmem_id, &shdmem_addr);
+	assert(ret > -1 && shdmem_addr);
+	replica_done_initializing_rust(shdmem_addr);
 }
 
 //request
@@ -219,14 +231,11 @@ request(int shdmem_id, int opcode, int data_size)
 	/* Set up Backing pthread structure in TLS for rust */
 	assign_thread_data(t);
 
-	vaddr_t shdmem_addr;
-	int ret = memmgr_shared_page_map(shdmem_id, &shdmem_addr);
-	assert(ret > -1 && shdmem_addr);
 	/* store request data for each replica in a global store accessible from Rust */
 	spdid_t spdid = cos_inv_token();
+	//FIXME this indexing doesnt work.
 	request_data[spdid % MAX_REPS][0] = data_size;
 	request_data[spdid % MAX_REPS][1] = opcode;
-	request_data[spdid % MAX_REPS][2] = shdmem_addr;
 	/* This will trigger a call back to get the reqeust_data */
 	return replica_request();
 }

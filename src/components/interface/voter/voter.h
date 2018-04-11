@@ -2,7 +2,7 @@
 #define VOTER_H
 
 
-void replica_done_initializing();
+void replica_done_initializing(int shdmem_id);
 int voter_write(int shdmem_id, int size);
 
 

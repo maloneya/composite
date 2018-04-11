@@ -1,5 +1,4 @@
 mod voter;
-
 extern crate libc;
 #[macro_use]
 extern crate lazy_static;
@@ -12,7 +11,7 @@ use lib_composite::panic_trace;
 use lib_composite::sys::types;
 use voter::voter_config;
 use std::slice;
-use libc::c_int;
+use libc::{c_int,c_ulong};
 
 
 extern {
@@ -21,28 +20,25 @@ extern {
 }
 
 #[no_mangle]
-pub extern "C" fn replica_done_initializing_rust() {
+pub extern "C" fn replica_done_initializing_rust(addr: c_ulong) {
     //Not sure how to make this function visible to C
-    voter::Voter::replica_done_initializing();
+    voter::Voter::replica_done_initializing(addr as *mut u8);
 }
 
 /* FFI Bug - parameters passed to this function get corrupted */
 #[no_mangle]
 pub extern "C" fn replica_request() -> [u8; voter_config::BUFF_SIZE] {
-    let (msg,opcode,replica_id);
+    let (size,opcode,replica_id);
 
     unsafe {
         replica_id = cos_inv_token_rs();
 
         let request_data = get_request_data(replica_id);
-        let size = *request_data;
+        size = *request_data;
         opcode = *request_data.offset(1);
-        let msg_ptr:*mut u8 = *request_data.offset(2) as *mut u8;
-
-        msg = slice::from_raw_parts_mut(msg_ptr, size as usize);
     }
 
-    voter::Voter::request(msg,opcode,replica_id)
+    voter::Voter::request(size,opcode,replica_id)
 }
 
 #[no_mangle]

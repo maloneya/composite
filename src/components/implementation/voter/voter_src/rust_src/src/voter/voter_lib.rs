@@ -1,8 +1,11 @@
 use lib_composite::sl::{Sl, Thread, ThreadParameter};
 use lib_composite::sys::types;
+use lib_composite::sys;
 use std::fmt;
 use voter::*;
 use voter::voter_config::*;
+use std::boxed::Box;
+
 
 #[derive(PartialEq)]
 pub enum VoteStatus {
@@ -14,6 +17,7 @@ pub enum VoteStatus {
 pub struct Replica {
     pub id:  types::spdid_t,
     pub thd: Option<Thread>,
+    pub shrdmem: Option<Box<[u8]>>,
     pub data_buffer: [u8; BUFF_SIZE],
 }
 
@@ -27,8 +31,12 @@ impl fmt::Debug for Replica {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Replica: [replica_id - {}]",
+            "Replica: [id:{} tid:{:?}]",
             self.id,
+            match self.thd.as_ref() {
+                None => format!("None"),
+                Some(thd) => format!("{}",thd.thread_id),
+            }
 
         )
     }
@@ -59,13 +67,25 @@ impl Replica {
         Replica {
             thd: None,
             id: 0,
+            shrdmem: None,
             data_buffer: [0; BUFF_SIZE],
         }
     }
 
     pub fn is_processing(&self) -> bool {
-        //TODO catch None or wait is processing the same as no requestsing thread?
-        self.thd.as_ref().unwrap().get_state() == sl_thd_state::SL_THD_RUNNABLE
+        let thd = self.thd.as_ref();
+        if thd.is_some() {
+            return thd.unwrap().get_state() == sl_thd_state::SL_THD_RUNNABLE;
+        }
+        true /* If the replica has no thread nothing has made a request so its processing */
+    }
+
+    pub fn is_blocked(&self) -> bool {
+        let thd = self.thd.as_ref();
+        if thd.is_some() {
+            return thd.unwrap().get_state() == sl_thd_state::SL_THD_BLOCKED;
+        }
+        false
     }
 
     //TODO!
@@ -73,14 +93,26 @@ impl Replica {
         panic!("Replica {:?} must be recovered", self.id);;
     }
 
-    pub fn write(&mut self, op:i32, data: &mut [u8]) {
+    pub fn request(&mut self, op:i32, data_size: i32, sl: Sl) {
+        let data_size = data_size as usize;
         println!("rep {:?} write", self.id);
-        assert!(data.len() + 2 < BUFF_SIZE);
+        assert!(data_size + 2 < BUFF_SIZE);
+
         /* pack replica data buffer with request information */
         self.data_buffer[0] = op as u8;
-        self.data_buffer[1] = data.len() as u8;
-        self.data_buffer[2..2+data.len()].copy_from_slice(data);
+        self.data_buffer[1] = data_size as u8;
+        self.data_buffer[2..2+data_size].copy_from_slice(&self.shrdmem.as_mut().unwrap()[..data_size]);
+        self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
+
         println!("replica stored request {:?}",self.data_buffer);
+    }
+
+    pub fn get_response(&mut self) -> [u8;BUFF_SIZE] {
+        self.thd = None;
+         replace(
+            &mut self.data_buffer,
+            [0; BUFF_SIZE],
+        )
     }
 }
 
@@ -102,7 +134,6 @@ impl Component {
     }
 
     pub fn get_replica_by_spdid(& mut self, spdid: types::spdid_t) -> Option<& mut Replica> {
-        println!("looking up {:?}", spdid);
         let mut found = MAX_REPS + 1;
         for (i, replica) in (&mut self.replicas).iter_mut().enumerate() {
             if replica.id == spdid {
@@ -152,6 +183,14 @@ impl Component {
         if num_processing > 0 {
             return VoteStatus::Inconclusive(num_processing, processing_replica_id);
         }
+
+        for replica in &self.replicas {
+            if !replica.is_blocked() {
+                return VoteStatus::Inconclusive(num_processing, replica.id);
+            }
+        }
+
+        /* Check that replicas are infact blocked */
 
         //check the request each replica has made
         if !self.validate_msgs() {
