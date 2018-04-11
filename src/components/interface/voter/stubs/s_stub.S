@@ -9,4 +9,5 @@
 
 .text
 
+cos_asm_server_stub(replica_done_initializing)
 cos_asm_server_stub(voter_write)

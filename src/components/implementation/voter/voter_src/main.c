@@ -177,23 +177,13 @@ assign_thread_data(struct sl_thd *thread)
 /*rust init also begins sched loop */
 extern void  rust_init();
 extern void *replica_request();
+extern void  replica_done_initializing_rust();
 
 int voter_initialized = 0;
+int num_replicas = 0;
 
-thdid_t replica_thdids[MAX_REPS];
-spdid_t replica_ids[MAX_REPS];
 /* c->rust function parameter corruption workaround */
 int request_data[MAX_REPS][3];
-
-thdid_t *
-get_replica_thdids() {
-	return replica_thdids;
-}
-
-spdid_t *
-get_replica_ids() {
-	return replica_ids;
-}
 
 void
 voter_done_initalizing() {
@@ -203,6 +193,18 @@ voter_done_initalizing() {
 int *
 get_request_data(spdid_t id) {
 	return request_data[id % MAX_REPS];
+}
+
+int
+get_num_replicas()
+{
+	return num_replicas;
+}
+
+void
+replica_done_initializing()
+{
+	replica_done_initializing_rust();
 }
 
 //request
@@ -253,8 +255,9 @@ sched_child_init(struct sched_childinfo *schedci)
 	assert(schedci);
 	initthd = sched_child_initthd_get(schedci);
 	assert(initthd);
-	replica_thdids[schedci->id % MAX_REPS] = sl_thd_thdid(initthd);
-	replica_ids[schedci->id % MAX_REPS] = schedci->id;
+
+	num_replicas++;
+	assert(num_replicas <= MAX_REPS);
 
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_PRIO, FIXED_PRIO));
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));
@@ -276,8 +279,6 @@ cos_init()
 	while (schedinit_self()) sl_thd_block_periodic(0);
 	PRINTLOG(PRINT_DEBUG, "Replica boot complete\n");
 
-	printc("Entering rust!\n");
-	//voter init also begins sched loop
 	rust_init();
 }
 

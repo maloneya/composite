@@ -20,6 +20,12 @@ extern {
     fn cos_inv_token_rs() -> types::spdid_t;
 }
 
+#[no_mangle]
+pub extern "C" fn replica_done_initializing_rust() {
+    //Not sure how to make this function visible to C
+    voter::Voter::replica_done_initializing();
+}
+
 /* FFI Bug - parameters passed to this function get corrupted */
 #[no_mangle]
 pub extern "C" fn replica_request() -> [u8; voter_config::BUFF_SIZE] {
@@ -45,7 +51,7 @@ pub extern "C" fn rust_init() {
     Sl::start_scheduler_loop_without_initializing(api, voter::voter_config::REP_PRIO, move |sl: Sl| {
         println!("Entered Scheduling loop\n");
 
-        voter::Voter::monitor_application(sl);
+        voter::Voter::initialize(sl);
     });
 }
 

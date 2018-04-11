@@ -13,7 +13,7 @@ pub enum VoteStatus {
 
 pub struct Replica {
     pub id:  types::spdid_t,
-    pub thd: Thread,
+    pub thd: Option<Thread>,
     pub data_buffer: [u8; BUFF_SIZE],
 }
 
@@ -27,9 +27,9 @@ impl fmt::Debug for Replica {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Replica: [replica_id - {} Thdid - {}]",
+            "Replica: [replica_id - {}]",
             self.id,
-            self.thd.thdid(),
+
         )
     }
 }
@@ -55,17 +55,17 @@ impl fmt::Debug for Component {
 }
 
 impl Replica {
-    pub fn new(id: types::spdid_t, mut thd: Thread) -> Replica {
-        thd.set_param(ThreadParameter::Priority(voter_config::REP_PRIO));
+    pub fn new() -> Replica {
         Replica {
-            thd: thd,
-            id,
+            thd: None,
+            id: 0,
             data_buffer: [0; BUFF_SIZE],
         }
     }
 
     pub fn is_processing(&self) -> bool {
-        self.thd.get_state() == sl_thd_state::SL_THD_RUNNABLE
+        //TODO catch None or wait is processing the same as no requestsing thread?
+        self.thd.as_ref().unwrap().get_state() == sl_thd_state::SL_THD_RUNNABLE
     }
 
     //TODO!
@@ -85,19 +85,13 @@ impl Replica {
 }
 
 impl Component {
-    pub fn new(thread_ids:&mut [types::thdid_t], spdids:&mut [types::spdid_t]) -> Component {
+    pub fn new(num_replicas: i32) -> Component {
+        let num_replicas = num_replicas as usize;
+        assert!(num_replicas <= MAX_REPS);
 
         let mut replicas = Vec::new();
-        let mut num_replicas = 0;
-        println!("{:?}", thread_ids);
-        println!("{:?}", spdids);
-        for vals in thread_ids.iter().zip(spdids.iter()) {
-            let (thread_id,spdid) = vals;
-            if *thread_id <= 0 {break}
-
-            /* num_replicas doubling as rep_id here */
-            replicas.push(Replica::new(*spdid, Thread {thread_id: *thread_id}));
-            num_replicas += 1;
+        for i in 0..num_replicas {
+            replicas.push(Replica::new());
         }
 
         Component {
@@ -125,15 +119,25 @@ impl Component {
         }
     }
 
+    pub fn replicas_initialized(&self) -> bool {
+        for replica in &self.replicas {
+            if replica.id == 0 {
+                return false
+            }
+        }
+        true
+    }
+
     pub fn wake_all(&mut self) {
         for replica in &mut self.replicas {
-            replica.thd.wakeup();
+            replica.thd.as_mut().unwrap().wakeup();
         }
     }
 
     pub fn collect_vote(&mut self) -> VoteStatus {
         let mut processing_replica_id = 0;
         let mut num_processing = 0;
+        println!("reps= {:?}", self.replicas);
 
         for replica in &self.replicas {
             if replica.is_processing() {

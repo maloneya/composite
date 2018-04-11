@@ -14,9 +14,9 @@ use std::mem::replace;
 use std::slice;
 
 extern {
-    fn get_replica_thdids() -> *mut types::thdid_t;
-    fn get_replica_ids()    -> *mut types::spdid_t;
+    fn get_num_replicas() -> i32;
     fn voter_done_initalizing();
+    fn cos_inv_token_rs() -> types::spdid_t;
 }
 
 pub struct Voter {
@@ -25,26 +25,51 @@ pub struct Voter {
 
 lazy_static! {
     static ref VOTER:Lock<Voter> = unsafe {
-        Lock::new(Sl::assert_scheduler_already_started(),Voter::new()
+        Lock::new(Sl::assert_scheduler_already_started(),Voter::new(get_num_replicas())
     )};
 }
 
 impl Voter {
-    pub fn new() -> Voter {
-        let tids;
-        let ids;
-        /* get tid and spdid from a global store in C */
-        unsafe {
-            tids = slice::from_raw_parts_mut(get_replica_thdids(),MAX_REPS);
-            ids = slice::from_raw_parts_mut(get_replica_ids(),MAX_REPS)
-        };
+    pub fn new(num_replicas: i32) -> Voter {
+        Voter {
+            application: voter_lib::Component::new(num_replicas),
+        }
+    }
 
-        let v = Voter {
-            application: voter_lib::Component::new(tids,ids),
-        };
+    pub fn initialize(sl:Sl) {
+        loop {
+            let mut initialized = true;
+            {
+                let voter = Voter::try_lock_and_wait(&*VOTER, sl);
+                initialized = voter.application.replicas_initialized()
+            }
+            if initialized {
+                break;
+            }
+            else {
+                sl.thd_yield();
+            }
+        }
 
         unsafe {voter_done_initalizing()};
-        v
+        Voter::monitor_application(sl);
+    }
+
+    pub fn replica_done_initializing() {
+        let sl;
+        unsafe {
+            sl = Sl::assert_scheduler_already_started();
+        }
+
+        let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
+
+        for replica in &mut voter.application.replicas {
+            if replica.id == 0 {
+                unsafe {replica.id = cos_inv_token_rs();}
+                return;
+            }
+        }
+        panic!("init replica not found");
     }
 
     pub fn monitor_application(sl: Sl) {

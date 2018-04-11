@@ -4,11 +4,7 @@
 #include <cobj_format.h>
 #include "../../interface/capmgr/memmgr.h"
 
-void cos_init(void)
-{
-	printc("Welcome to the test replica component\n");
-
-	printc("Invoking voter interface:\n");
+void make_sys_call() {
 	vaddr_t shdmem_addr;
 	int shdmem_id;
 
@@ -18,8 +14,26 @@ void cos_init(void)
     for (int i = 0; i < 5; i++) {
     	*(int *)(shdmem_addr+i) = i + 1;
     }
-
+    printc("Replica making syscall\n");
 	voter_write(shdmem_id,5);
+}
+
+void do_work() {
+	for (int i = 0;;i++) {
+		if (i == 100) {
+			make_sys_call();
+			i = 0;
+		}
+	}
+}
+
+void cos_init(void)
+{
+	printc("Replica booted\n");
+	replica_done_initializing();
+	do_work();
 
 	return;
 }
+
+
