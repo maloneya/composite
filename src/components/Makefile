@@ -41,3 +41,12 @@ init:
 
 idl:
 	$(MAKE) $(MAKEFLAGS) -C interface idl
+
+rk:
+	$(MAKE) $(MAKEFLAGS) -C extern rk_all
+
+rk_init:
+	$(MAKE) $(MAKEFLAGS) -C extern rk_init
+
+rk_clean:
+	$(MAKE) $(MAKEFLAGS) -C extern rk_clean

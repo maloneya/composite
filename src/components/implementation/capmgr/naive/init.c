@@ -18,6 +18,7 @@ capmgr_comp_info_iter(void)
 
 	do {
 		spdid_t spdid = 0, sched_spdid = 0;
+		struct cos_compinfo tmp;
 		struct cap_comp_info *rci = NULL;
 		struct cos_compinfo tmp;
 		struct sl_thd *ithd = NULL;
@@ -26,6 +27,7 @@ capmgr_comp_info_iter(void)
 		captblcap_t captslot = 0;
 		compcap_t ccslot = 0;
 		vaddr_t vasfr = 0, src_pg = 0;
+
 		capid_t capfr = 0;
 		int ret = 0, is_sched = 0, offset = 0;
 		int remain_child = 0;

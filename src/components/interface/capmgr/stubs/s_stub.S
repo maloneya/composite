@@ -14,6 +14,5 @@ cos_asm_server_stub(capmgr_asnd_key_create)
 
 cos_asm_server_stub(memmgr_tls_alloc)
 cos_asm_server_stub(_memmgr_tls_alloc_and_set)
-cos_asm_server_stub(memmgr_heap_page_allocn)
-cos_asm_server_stub_rets(memmgr_shared_page_allocn_cserialized)
-cos_asm_server_stub_rets(memmgr_shared_page_map_cserialized)
+cos_asm_server_stub(memmgr_va2pa)
+cos_asm_server_stub(memmgr_pa2va_map)

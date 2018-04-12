@@ -457,6 +457,11 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 			t = sl_mod_thd_get(pt);
 	}
 
+	if (t == sl__globals()->idle_thd) {
+		sl_cs_exit();
+		return -EAGAIN;
+	}
+
 	if (t->properties & SL_THD_PROPERTY_OWN_TCAP && t->budget) {
 		assert(t->period);
 		assert(sl_thd_tcap(t) != sl__globals()->sched_tcap);

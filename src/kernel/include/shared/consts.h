@@ -138,4 +138,8 @@ struct pt_regs {
 #define THDID_OFFSET 2
 #define INVTOKEN_OFFSET 3
 
+#define KEY_VALUE_PAIRS 10
+#define KEY_LENGTH 25
+#define VALUE_LENGTH 100
+
 #endif
