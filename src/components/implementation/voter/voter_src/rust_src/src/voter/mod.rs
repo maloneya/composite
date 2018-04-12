@@ -80,6 +80,7 @@ impl Voter {
         loop {
             match Voter::monitor_vote(&*VOTER, consecutive_inconclusive, sl) {
                 VoteStatus::Success(consensus) => {
+                    println!("vote success");
                     consecutive_inconclusive = 0;
                     let application_data = Voter::contact_server(consensus);
                     Voter::transfer(&*VOTER, application_data, sl);
@@ -121,31 +122,31 @@ impl Voter {
     fn transfer(voter_lock: &Lock<Voter>, data: [u8; BUFF_SIZE], sl: Sl) {
         let mut voter = Voter::try_lock_and_wait(voter_lock, sl);
         for replica in &mut voter.deref_mut().application.replicas {
-            for i in 0..BUFF_SIZE {
-                replica.data_buffer[i] = data[i];
+            // replica.shrdmem.as_mut().unwrap()[0] = data.len() as u8;
+            // replica.shrdmem.as_mut().unwrap()[1..1+BUFF_SIZE].copy_from_slice(&data);
+            let shrdmem = replica.shrdmem.as_mut().unwrap();
+            //TODO - try returning int maybe that wont corrupt stack
+            shrdmem[0] = BUFF_SIZE as u8; //store amount of data to read in first space
+            for i in 1..BUFF_SIZE+1 {
+                shrdmem[i] = data[i - 1];
             }
         }
+
         voter.deref_mut().application.wake_all();
     }
 
-    pub fn request(data_size: i32, op:i32, replica_id: types::spdid_t) -> [u8; BUFF_SIZE] {
+    pub fn request(data_size: i32, op:i32, replica_id: types::spdid_t) {
         let sl:Sl;
         unsafe {
             sl = Sl::assert_scheduler_already_started();
         }
-
         println!("Rep {} making request", replica_id);
+
         {
-            //is there a way to remove the need for this lock?
             let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
             voter.application.get_replica_by_spdid(replica_id).unwrap().request(op,data_size,sl);
         }
-
         sl.block();
-
-        //get data returned from request.
-        let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
-        voter.application.get_replica_by_spdid(replica_id).unwrap().get_response()
     }
 
     //unsure if this is actually still necessary. now that we fixed the WOKE race

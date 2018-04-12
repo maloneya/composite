@@ -13,9 +13,7 @@ use voter::voter_config;
 use std::slice;
 use libc::{c_int,c_ulong};
 
-
 extern {
-    fn get_request_data(id:types::spdid_t) -> *mut c_int;
     fn cos_inv_token_rs() -> types::spdid_t;
 }
 
@@ -27,18 +25,12 @@ pub extern "C" fn replica_done_initializing_rust(addr: c_ulong) {
 
 /* FFI Bug - parameters passed to this function get corrupted */
 #[no_mangle]
-pub extern "C" fn replica_request() -> [u8; voter_config::BUFF_SIZE] {
-    let (size,opcode,replica_id);
+pub extern "C" fn replica_request(data_size: c_int, opcode: c_int) {
+    let replica_id = unsafe {
+         cos_inv_token_rs()
+    };
 
-    unsafe {
-        replica_id = cos_inv_token_rs();
-
-        let request_data = get_request_data(replica_id);
-        size = *request_data;
-        opcode = *request_data.offset(1);
-    }
-
-    voter::Voter::request(size,opcode,replica_id)
+    voter::Voter::request(data_size,opcode,replica_id);
 }
 
 #[no_mangle]

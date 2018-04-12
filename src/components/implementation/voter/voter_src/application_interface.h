@@ -10,7 +10,7 @@ int
 voter_write(int shdmem_id, int size) {
 	void * result = request(shdmem_id, WRITE, size);
 	//TODO build a real interface here
-	return *(int *) result;
+	return 0;
 }
 
 

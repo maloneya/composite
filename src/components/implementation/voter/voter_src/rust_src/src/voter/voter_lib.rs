@@ -95,7 +95,6 @@ impl Replica {
 
     pub fn request(&mut self, op:i32, data_size: i32, sl: Sl) {
         let data_size = data_size as usize;
-        println!("rep {:?} write", self.id);
         assert!(data_size + 2 < BUFF_SIZE);
 
         /* pack replica data buffer with request information */
@@ -103,16 +102,6 @@ impl Replica {
         self.data_buffer[1] = data_size as u8;
         self.data_buffer[2..2+data_size].copy_from_slice(&self.shrdmem.as_mut().unwrap()[..data_size]);
         self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
-
-        println!("replica stored request {:?}",self.data_buffer);
-    }
-
-    pub fn get_response(&mut self) -> [u8;BUFF_SIZE] {
-        self.thd = None;
-         replace(
-            &mut self.data_buffer,
-            [0; BUFF_SIZE],
-        )
     }
 }
 
@@ -161,14 +150,13 @@ impl Component {
 
     pub fn wake_all(&mut self) {
         for replica in &mut self.replicas {
-            replica.thd.as_mut().unwrap().wakeup();
+            replica.thd.take().unwrap().wakeup();
         }
     }
 
     pub fn collect_vote(&mut self) -> VoteStatus {
         let mut processing_replica_id = 0;
         let mut num_processing = 0;
-        println!("reps= {:?}", self.replicas);
 
         for replica in &self.replicas {
             if replica.is_processing() {

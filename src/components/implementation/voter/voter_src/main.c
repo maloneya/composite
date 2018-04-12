@@ -161,6 +161,9 @@ assign_thread_data(struct sl_thd *thread)
 	thdcap_t             thdcap = sl_thd_thdcap(thread);
 	thdid_t              thdid  = sl_thd_thdid(thread);
 
+	/* workaround */
+	if (backing_thread_data[thdid].tid == thdid) return;
+
 	/* HACK: We setup some thread specific data to make musl stuff work with sl threads */
 	backing_thread_data[thdid].tid = thdid;
 	backing_thread_data[thdid].robust_list.head = &backing_thread_data[thdid].robust_list.head;
@@ -177,25 +180,17 @@ assign_thread_data(struct sl_thd *thread)
 #define MAX_REPS 3
 
 /*rust init also begins sched loop */
-extern void  rust_init();
-extern void *replica_request();
-extern void  replica_done_initializing_rust(vaddr_t shdmem_addr);
+extern void rust_init();
+extern void replica_request(int data_size, int opcode);
+extern void replica_done_initializing_rust(vaddr_t shdmem_addr);
 
 int voter_initialized = 0;
 int num_replicas = 0;
-
-/* c->rust function parameter corruption workaround */
-int request_data[MAX_REPS][3];
 
 /* rust callbacks */
 void
 voter_done_initalizing() {
 	voter_initialized = 1;
-}
-
-int *
-get_request_data(spdid_t id) {
-	return request_data[id % MAX_REPS];
 }
 
 int
@@ -229,15 +224,11 @@ request(int shdmem_id, int opcode, int data_size)
 	struct sl_thd *t = sl_thd_curr();
 	assert(t);
 	/* Set up Backing pthread structure in TLS for rust */
+	/* this should be taken out of the request path.*/
 	assign_thread_data(t);
 
-	/* store request data for each replica in a global store accessible from Rust */
-	spdid_t spdid = cos_inv_token();
-	//FIXME this indexing doesnt work.
-	request_data[spdid % MAX_REPS][0] = data_size;
-	request_data[spdid % MAX_REPS][1] = opcode;
-	/* This will trigger a call back to get the reqeust_data */
-	return replica_request();
+	replica_request(data_size,opcode);
+	return 0;
 }
 
 

@@ -11,6 +11,9 @@ void make_sys_call(vaddr_t shdmem_addr, int shdmem_id) {
     }
     printc("Replica making syscall\n");
 	voter_write(shdmem_id,5);
+	//check for data sent back from the voter
+	//TODO build real return interface
+	printc("replica got: %d\n", *(char*)shdmem_addr);
 }
 
 void do_work(vaddr_t shdmem_addr, int shdmem_id) {

@@ -12,7 +12,8 @@ pub fn handle_request(serialized_msg: [u8; BUFF_SIZE]) -> [u8; BUFF_SIZE] {
 }
 
 fn rk_write(data: &[u8]) -> u8 {
-    println!("wrote {:?}", data);
+    println!("voter performing write");
+    //println!("wrote {:?}", data);
     data.len() as u8
 }
 
