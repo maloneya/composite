@@ -34,23 +34,4 @@ memmgr_tls_alloc_and_set(void *area)
 	return addr;
 }
 
-/* This magic number is double the tls size defined in RK */
-#define TLS_AREA_SIZE 32
-#define TLS_NUM_PAGES (round_up_to_page(TLS_AREA_SIZE * MAX_NUM_THREADS) / PAGE_SIZE)
-#define TLS_BASE_ADDR 0x70000000
-
-void *memmgr_tls_alloc(unsigned int dst_tid);
-void *_memmgr_tls_alloc_and_set(void *area);
-
-static void *
-memmgr_tls_alloc_and_set(void *area)
-{
-	void *addr = _memmgr_tls_alloc_and_set(area);
-
-	/* Set area within addr for this tid */
-	*(void **)addr = area;
-
-	return addr;
-}
-
 #endif /* MEMMGR_H */

@@ -20,7 +20,6 @@ capmgr_comp_info_iter(void)
 		spdid_t spdid = 0, sched_spdid = 0;
 		struct cos_compinfo tmp;
 		struct cap_comp_info *rci = NULL;
-		struct cos_compinfo tmp;
 		struct sl_thd *ithd = NULL;
 		u64_t chbits = 0, chschbits = 0;
 		pgtblcap_t pgtslot = 0;

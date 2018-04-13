@@ -34,7 +34,7 @@ memmgr_pa2va_map(paddr_t pa, unsigned int len)
 }
 
 vaddr_t
-memmgr_heap_page_allocn(unsigned int npages)
+memmgr_heap_page_allocn(unsigned long npages)
 {
 	spdid_t cur = cos_inv_token();
 	struct cos_compinfo  *cap_ci  = cos_compinfo_get(cos_defcompinfo_curr_get());

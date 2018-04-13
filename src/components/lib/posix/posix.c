@@ -255,6 +255,7 @@ long
 cos_set_tid_address(int *tidptr)
 {
 	printc("%s\n", __func__);
+
 	/* Just do nothing for now and hope that works */
 	return 0;
 }
@@ -450,7 +451,7 @@ pre_syscall_default_setup()
 	cos_defcompinfo_init();
 	cos_meminfo_init(&(ci->mi), BOOT_MEM_KM_BASE, COS_MEM_KERN_PA_SZ, BOOT_CAPTBL_SELF_UNTYPED_PT);
 	printc("done\n");
-//	sl_init(SL_MIN_PERIOD_US);
+	sl_init(SL_MIN_PERIOD_US);
 }
 
 void

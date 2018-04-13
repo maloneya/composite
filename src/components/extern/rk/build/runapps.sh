@@ -78,14 +78,14 @@ cp $FINALOBJ $TRANSFERDIR
 cd $TRANSFERDIR
 USB_DEV=`stat --format "%F" /dev/sdb`
 
-if [ "$USB_DEV" = "block special file" ]; then
-	echo "GENERATING ISO"
-	./geniso.sh rumpkernboot.sh
-	echo "WRITIING ISO IMAGE to /dev/sdb: $USB_DEV"
-	sudo dd bs=8M if=composite.iso of=/dev/sdb
-	sync
-else
+#if [ "$USB_DEV" = "block special file" ]; then
+#	echo "GENERATING ISO"
+#	./geniso.sh rumpkernboot.sh
+#	echo "WRITIING ISO IMAGE to /dev/sdb: $USB_DEV"
+#	sudo dd bs=8M if=composite.iso of=/dev/sdb
+#	sync
+#else
 	echo "NO /dev/sdb: $USB_DEV"
 	echo "RUNNING THE SYSTEM ON QEMU INSTEAD"
 	./$QEMURK rumpkernboot.sh
-fi
+#fi

@@ -151,14 +151,7 @@ async_thd_parent_perf(void *thdcap)
 	PRINTC("Average ASND/ARCV (Total: %lld / Iterations: %lld ): %lld\n", total_asnd_cycles, (long long)(ITER),
 	       (total_asnd_cycles / (long long)(ITER)));
 
-<<<<<<< HEAD
 	async_test_flag[cos_cpuid()] = 0;
-=======
-	async_test_flag = 0;
-	perfdata_calc(&pd);
-	perfdata_print(&pd);
-
->>>>>>> origin/rumpkernel
 	while (1) cos_thd_switch(tc);
 }
 
@@ -887,14 +880,8 @@ test_inv_perf(void)
 		rdtscll(start_cycles);
 		call_cap_mb(ic, 1, 2, 3);
 		rdtscll(end_cycles);
-<<<<<<< HEAD
 		total_inv_cycles += (midinv_cycles[cos_cpuid()] - start_cycles);
 		total_ret_cycles += (end_cycles - midinv_cycles[cos_cpuid()]);
-=======
-		total_inv_cycles += (midinv_cycles - start_cycles);
-		perfdata_add(&pd, (midinv_cycles - start_cycles));
-		total_ret_cycles += (end_cycles - midinv_cycles);
->>>>>>> origin/rumpkernel
 	}
 
 	PRINTC("Average SINV (Total: %lld / Iterations: %lld ): %lld\n", total_inv_cycles, (long long)(ITER),
