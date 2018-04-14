@@ -19,6 +19,7 @@ macro_rules! printc {
 pub mod sys;
 
 pub mod kernel_api;
+pub mod memmgr_api;
 pub mod print_impl;
 pub mod sl;
 pub mod sl_lock;
