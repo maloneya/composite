@@ -262,6 +262,8 @@ sched_child_init(struct sched_childinfo *schedci)
 void
 cos_init()
 {
+	sl_init(SL_MIN_PERIOD_US);
+
 	struct sl_thd *t;
 
 	t = sl_thd_curr();
