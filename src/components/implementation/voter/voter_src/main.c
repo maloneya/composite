@@ -20,6 +20,7 @@
 #include <schedinit.h>
 #include "../../interface/capmgr/memmgr.h"
 #include "../../sched/sched_info.h"
+#include <rk.h>
 
 #include "application_interface.h"
 
