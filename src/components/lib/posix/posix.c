@@ -482,7 +482,6 @@ pre_syscall_default_setup()
 	cos_defcompinfo_init();
 	cos_meminfo_init(&(ci->mi), BOOT_MEM_KM_BASE, COS_MEM_KERN_PA_SZ, BOOT_CAPTBL_SELF_UNTYPED_PT);
 	printc("done\n");
-//	sl_init(SL_MIN_PERIOD_US);
 }
 
 void
