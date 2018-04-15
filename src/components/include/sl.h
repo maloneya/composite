@@ -514,7 +514,10 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 			sl_thd_sched_block_no_cs(t, SL_THD_BLOCKED_TIMEOUT, abs_timeout);
 			sl_cs_exit();
 		}
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0d417a3a1361a7bb85ec532b051bc5621b017a5f
 		if (unlikely(sl_thd_curr() != globals->sched_thd)) ret = sl_thd_activate(globals->sched_thd, tok);
 	}
 

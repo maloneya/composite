@@ -36,3 +36,4 @@ GTAGS
 Vagrantfile
 provision.sh
 *.log
+sl_bind_check
