@@ -4,6 +4,9 @@
 #include <cos_kernel_api.h>
 #include <cos_types.h>
 
+vaddr_t memmgr_va2pa(vaddr_t vaddr);
+vaddr_t memmgr_pa2va_map(paddr_t pa, unsigned int len);
+
 vaddr_t memmgr_heap_page_alloc(void);
 vaddr_t memmgr_heap_page_allocn(unsigned int num_pages);
 

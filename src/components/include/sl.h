@@ -448,6 +448,7 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 	if (unlikely(to)) {
 		t = to;
 		if (!sl_thd_is_runnable(t)) to= NULL;
+
 	}
 	if (likely(!to)) {
 		pt = sl_mod_schedule();
@@ -455,6 +456,11 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 			t = sl__globals()->idle_thd;
 		else
 			t = sl_mod_thd_get(pt);
+	}
+
+	if (t == sl__globals()->idle_thd) {
+		sl_cs_exit();
+		return -EAGAIN;
 	}
 
 	if (t->properties & SL_THD_PROPERTY_OWN_TCAP && t->budget) {
@@ -509,7 +515,6 @@ sl_cs_exit_schedule_nospin_arg(struct sl_thd *to)
 			sl_thd_sched_block_no_cs(t, SL_THD_BLOCKED_TIMEOUT, abs_timeout);
 			sl_cs_exit();
 		}
-
 		if (unlikely(sl_thd_curr() != globals->sched_thd)) ret = sl_thd_activate(globals->sched_thd, tok);
 	}
 

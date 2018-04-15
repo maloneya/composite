@@ -1,4 +1,5 @@
 #include <cos_kernel_api.h>
+#include <cos_component.h>
 #include <llprint.h>
 #include <cos_types.h>
 #include <hypercall.h>

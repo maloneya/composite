@@ -17,7 +17,14 @@ extern int num_cobj;
 extern int capmgr_spdid;
 extern int root_spdid;
 
-struct cobj_header *hs[MAX_NUM_SPDS + 1];
+struct cobj_header *hs[MAX_NUM_COMPS + 1];
+
+#define UDP_SPDID 3
+
+typedef enum {
+	BOOT_COMP_FLAG_SCHED = 1,
+	BOOT_COMP_FLAG_MM    = 1<<1,
+} boot_comp_flag_t;
 
 struct comp_sched_info {
 	comp_flag_t          flags;
