@@ -1,10 +1,9 @@
-use lib_composite::sl::{Sl, Thread, ThreadParameter};
+use lib_composite::sl::{Sl, Thread};
+use lib_composite::memmgr_api::SharedMemoryReigon;
 use lib_composite::sys::types;
-use lib_composite::sys;
 use std::fmt;
 use voter::*;
 use voter::voter_config::*;
-use std::boxed::Box;
 
 
 #[derive(PartialEq)]
@@ -17,8 +16,9 @@ pub enum VoteStatus {
 pub struct Replica {
     pub id:  types::spdid_t,
     pub thd: Option<Thread>,
-    pub shrdmem: Option<Box<[u8]>>,
+    pub shrdmem: Option<SharedMemoryReigon>,
     pub data_buffer: [u8; BUFF_SIZE],
+    pub ret: Option<i32>,
 }
 
 pub struct Component {
@@ -69,6 +69,7 @@ impl Replica {
             id: 0,
             shrdmem: None,
             data_buffer: [0; BUFF_SIZE],
+            ret: None,
         }
     }
 
@@ -93,15 +94,21 @@ impl Replica {
         panic!("Replica {:?} must be recovered", self.id);;
     }
 
-    pub fn request(&mut self, op:i32, data_size: i32, sl: Sl) {
-        let data_size = data_size as usize;
-        assert!(data_size + 2 < BUFF_SIZE);
+    pub fn request(&mut self, op:i32, data_size: usize, args:[u8;MAX_ARGS], sl: Sl) {
+        /* if the reqeust wont fit in the buffer dont write - let the vote fail */
+        if data_size + MAX_ARGS + 2 >= BUFF_SIZE {return} /* find way to communicate this error */
 
+
+        let data_start = 2+MAX_ARGS;
+        let data_end = data_start + data_size;
         /* pack replica data buffer with request information */
         self.data_buffer[0] = op as u8;
         self.data_buffer[1] = data_size as u8;
-        self.data_buffer[2..2+data_size].copy_from_slice(&self.shrdmem.as_mut().unwrap()[..data_size]);
+        self.data_buffer[2..2+MAX_ARGS].copy_from_slice(&args[..]);
+        self.data_buffer[data_start..data_end].copy_from_slice(&self.shrdmem.as_mut().unwrap().mem[..data_size]);
         self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
+
+        println!("reqeust wrote {:?}",self.data_buffer);
     }
 }
 

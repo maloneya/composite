@@ -181,7 +181,7 @@ assign_thread_data(struct sl_thd *thread)
 
 /*rust init also begins sched loop */
 extern void rust_init();
-extern void replica_request(int data_size, int opcode);
+extern void replica_request(int opcode, int shdmem_size, int * args);
 extern void replica_done_initializing_rust(vaddr_t shdmem_addr);
 
 int voter_initialized = 0;
@@ -200,24 +200,19 @@ get_num_replicas()
 }
 
 void
-replica_done_initializing(int shdmem_id)
+_replica_done_initializing(cbuf_t shdmem_id)
 {
 
 	struct sl_thd *t = sl_thd_curr();
 	assert(t);
 	/* Set up Backing pthread structure in TLS for rust */
 	assign_thread_data(t);
-
-	vaddr_t shdmem_addr;
-	int ret = memmgr_shared_page_map(shdmem_id, &shdmem_addr);
-	assert(ret > -1 && shdmem_addr);
-	replica_done_initializing_rust(shdmem_addr);
+	
+	replica_done_initializing_rust(shdmem_id);
 }
 
-//request
-//unsure exactly what type this should return - do sinv returns work just like functions ? i think so
-void *
-request(int shdmem_id, int opcode, int data_size)
+int
+request(int opcode,int shdmem_size, int *args)
 {
 	while (!voter_initialized) sl_thd_yield(0);
 
@@ -227,7 +222,7 @@ request(int shdmem_id, int opcode, int data_size)
 	/* this should be taken out of the request path.*/
 	assign_thread_data(t);
 
-	replica_request(data_size,opcode);
+	replica_request(opcode, shdmem_size, args);
 	return 0;
 }
 
