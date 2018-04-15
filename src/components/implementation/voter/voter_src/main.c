@@ -185,7 +185,7 @@ assign_thread_data(struct sl_thd *thread)
 /*rust init also begins sched loop */
 extern void rust_init();
 extern void replica_request(int opcode, int shdmem_size, int * args);
-extern void replica_done_initializing_rust(vaddr_t shdmem_addr);
+extern void replica_done_initializing_rust(int shdmem_id);
 
 int voter_initialized = 0;
 int num_replicas = 0;
@@ -203,14 +203,14 @@ get_num_replicas()
 }
 
 void
-_replica_done_initializing(cbuf_t shdmem_id)
+_replica_done_initializing(int shdmem_id)
 {
 
 	struct sl_thd *t = sl_thd_curr();
 	assert(t);
 	/* Set up Backing pthread structure in TLS for rust */
 	assign_thread_data(t);
-	
+
 	replica_done_initializing_rust(shdmem_id);
 }
 

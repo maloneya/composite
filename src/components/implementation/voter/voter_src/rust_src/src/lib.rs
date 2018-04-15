@@ -15,7 +15,7 @@ extern {
 }
 
 #[no_mangle]
-pub extern "C" fn replica_done_initializing_rust(shdmem_id: u32) {
+pub extern "C" fn replica_done_initializing_rust(shdmem_id: i32) {
     //Not sure how to make this function visible to C
     voter::Voter::replica_done_initializing(shdmem_id);
 }

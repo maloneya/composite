@@ -6,12 +6,12 @@
 #include <sys/mman.h>
 #include "../../interface/capmgr/memmgr.h"
 
-cbuf_t shdmem_id;
+int shdmem_id;
 vaddr_t shdmem_addr;
 
 
 /* internal calls */
-void _replica_done_initializing(cbuf_t shdmem_id);
+void _replica_done_initializing(int shdmem_id);
 int  _voter_write(int fd, int count);
 int  _voter_read(int fd, size_t nbyte);
 int  _voter_socket(int domain, int type, int protocol);
@@ -22,32 +22,32 @@ void
 _shdmem_write_at(void * data, int size, int start_offset)
 {
 	assert(start_offset+size < 4096);
-	assert(shdmem_addr > 0 && shdmem_id > 0);
+	assert(shdmem_addr > 0 && shdmem_id > -1);
 
 	memcpy((void *)shdmem_addr+start_offset,data,size);
 }
 
 void _shdmem_write(void * data, int size) {_shdmem_write_at(data,size,0);}
 
-/* client invoke stubs */ 
+/* client invoke stubs */
 void replica_done_initializing()
 {
 	shdmem_id = memmgr_shared_page_alloc(&shdmem_addr);
-    assert(shdmem_id > 0 && shdmem_addr > 0);
+	assert(shdmem_id > -1 && shdmem_addr > 0);
 
-    _replica_done_initializing(shdmem_id);
+    	_replica_done_initializing(shdmem_id);
 }
- 
-int 
+
+int
 voter_write(int fd, void *buf, int count)
 {
-	assert(fd); 
+	assert(fd);
 
 	_shdmem_write(buf,count);
 	return _voter_write(fd,count);
 }
 
-long 
+long
 voter_read(int fd, void *buf, size_t nbyte)
 {
 	long ret = _voter_read(fd,nbyte);
@@ -91,10 +91,10 @@ voter_socketcall(int call, unsigned long *args)
 		}
 		case 5: { /* accept */
 			int sockfd;
-			struct sockaddr *sock_addr; 
+			struct sockaddr *sock_addr;
 			socklen_t * addrlen;
 
-			sockfd    = *args; 
+			sockfd    = *args;
 			sock_addr = (struct sockaddr *)*(args + 1);
 			addrlen   = (socklen_t *)*(args + 2);
 

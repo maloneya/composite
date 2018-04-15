@@ -56,7 +56,7 @@ impl Voter {
         Voter::monitor_application(sl);
     }
 
-    pub fn replica_done_initializing(shdmem_id: u32) {
+    pub fn replica_done_initializing(shdmem_id: i32) {
         let sl = unsafe {
             Sl::assert_scheduler_already_started()
         };
