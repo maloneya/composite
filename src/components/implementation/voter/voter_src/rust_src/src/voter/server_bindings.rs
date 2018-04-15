@@ -48,7 +48,9 @@ fn write(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     let size = data[SIZE] as usize;
     let fd = data[ARGS] as i32;
 
-    server_shrdmem.mem.copy_from_slice(&data[DATA..]);
+    /* calcualte the length from where the data starts in the packed buffer */
+    let copy_len = data.len() - DATA;
+    server_shrdmem.mem[..copy_len].copy_from_slice(&data[DATA..]);
     let ret = unsafe {rk_write(fd,server_shrdmem.id as i32,size)} as i32;   
     (ret,false)
 }
@@ -79,7 +81,9 @@ fn bind(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     let fd = data[ARGS] as i32;
     let addrlen = data[SIZE] as u32;
 
-    server_shrdmem.mem.copy_from_slice(&data[DATA..]);
+    /* calcualte the length from where the data starts in the packed buffer */
+    let copy_len = data.len() - DATA;
+    server_shrdmem.mem[..copy_len].copy_from_slice(&data[DATA..]);
     let ret = unsafe {rk_bind(fd,server_shrdmem.id as i32,addrlen)} as i32;
     (ret,false)
 }
@@ -88,7 +92,9 @@ fn accept(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     println!("voter accept");
     let fd = data[ARGS] as i32;
 
-    server_shrdmem.mem.copy_from_slice(&data[DATA..]);
+    /* calcualte the length from where the data starts in the packed buffer */
+    let copy_len = data.len() - DATA;
+    server_shrdmem.mem[..copy_len].copy_from_slice(&data[DATA..]);
     
     let ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
     (ret,true)

@@ -118,7 +118,7 @@ impl Component {
         assert!(num_replicas <= MAX_REPS);
 
         let mut replicas = Vec::new();
-        for i in 0..num_replicas {
+        for _i in 0..num_replicas {
             replicas.push(Replica::new());
         }
 
