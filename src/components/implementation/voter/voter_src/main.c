@@ -23,11 +23,13 @@
 
 #include "application_interface.h"
 
-extern int parent_schedinit_child(void);
+#include <rk.h>
 
 #define FIXED_PRIO 5
 #define FIXED_BUDGET_MS 2000
 #define FIXED_PERIOD_MS 10000
+
+extern int parent_schedinit_child(void);
 
 /* These are macro values rust needs, so we duplicate them here */
 vaddr_t       boot_mem_km_base            = BOOT_MEM_KM_BASE;
@@ -259,15 +261,32 @@ sched_child_init(struct sched_childinfo *schedci)
 	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_BUDGET, FIXED_BUDGET_MS));
 }
 
+int spdid;
+extern struct cos_component_information cos_comp_info;
+
 void
 cos_init()
 {
-	sl_init(SL_MIN_PERIOD_US);
+	printc("Welcome to the voter component\n");
+	printc("cos_component_information spdid: %ld\n", cos_comp_info.cos_this_spd_id);
+	spdid = cos_comp_info.cos_this_spd_id;
+
+	printc("Calling rk_inv_entry to test rk sinvs...\n");
+	/* Test 1 */
+	get_boot_done();
+	/* Test 2 */
+	test_entry(0, 1, 2, 3);
+	printc("RK tests done\n");
 
 	struct sl_thd *t;
 
+	sl_init(SL_MIN_PERIOD_US);
+
+	printc("Getting sl thread cur\n");
 	t = sl_thd_curr();
+	printc("Assinging thread data...");
 	assign_thread_data(t);
+	printc(" done\n");
 
 	sched_childinfo_init();
 

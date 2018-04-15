@@ -16,10 +16,15 @@
 
 #include "rump_cos_alloc.h"
 #include "rk_sched.h"
+#include "sched_info.h"
 
 extern int vmid;
 extern struct cos_compinfo *currci;
 extern struct cos_rumpcalls crcalls;
+
+#define FIXED_PRIO 5
+#define FIXED_BUDGET_MS 2000
+#define FIXED_PERIOD_MS 10000
 
 /* Mapping the functions from rumpkernel to composite */
 void
@@ -231,12 +236,34 @@ cos_tls_alloc(struct bmk_thread *thread)
 	return tlsmem + tcboffset;
 }
 
+/* Hack for http_tmr server, RK is booting the voter, which is a scheduler */
+#define CHILD_ISNT_SCHEDULER 0
+
+struct sl_thd *t = NULL;
+
+void
+sched_child_init(struct sched_childinfo *schedci)
+{
+	struct sl_thd *initthd = NULL;
+	printc("RK initialized voter\n");
+
+	assert(schedci);
+	printc("%s, %d\n", __FILE__, __LINE__);
+	initthd = sched_child_initthd_get(schedci);
+	assert(initthd);
+
+	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_PRIO, RK_RUMP_THD_PRIO));
+	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));
+	sl_thd_param_set(initthd, sched_param_pack(SCHEDP_BUDGET, FIXED_BUDGET_MS));
+
+	t = initthd;
+}
+
 void
 cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 		void (*f)(void *), void *arg,
 		void *stack_base, unsigned long stack_size)
 {
-	struct sl_thd *t = NULL;
 	int ret;
 
 	/*
@@ -245,7 +272,7 @@ cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 	 */
 
 	/* Check to see if we are creating the thread for our application */
-	if (!strcmp(thread->bt_name, "user_lwp")) {
+	if (!strcmp(thread->bt_name, "user_lwp") && CHILD_ISNT_SCHEDULER) {
 		int udpserver_id = 3;
 		thdcap_t thd;
 		thdid_t tid;
@@ -260,7 +287,11 @@ cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 
 		t = sl_thd_comp_init(&udpserver_comp, 0);
 		sl_thd_param_set(t, sched_param_pack(SCHEDP_PRIO, RK_RUMP_THD_PRIO));
+		sl_thd_param_set(t, sched_param_pack(SCHEDP_WINDOW, FIXED_PERIOD_MS));
+		sl_thd_param_set(t, sched_param_pack(SCHEDP_BUDGET, FIXED_BUDGET_MS));
 
+	} else if (!strcmp(thread->bt_name, "user_lwp") && !CHILD_ISNT_SCHEDULER) {
+		sched_childinfo_init();
 	} else {
 		t = rk_rump_thd_alloc(f, arg);
 		assert(t);

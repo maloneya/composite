@@ -156,7 +156,7 @@ void
 rk_sched_loop(void)
 {
 	printc("STARTING RK SL LOOP\n");
-	sl_sched_loop_nonblock();
+	sl_sched_loop();
 }
 
 void

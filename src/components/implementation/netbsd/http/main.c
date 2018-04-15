@@ -111,8 +111,8 @@ extern struct cos_component_information cos_comp_info;
 void
 cos_init(void)
 {
-	printc("Welcome to the simple webserver\n");
-	printc("cos_component_infomration spdid: %ld\n", cos_comp_info.cos_this_spd_id);
+	printc("Welcome to the simple web server\n");
+	printc("cos_component_information spdid: %ld\n", cos_comp_info.cos_this_spd_id);
 
 	spdid = cos_comp_info.cos_this_spd_id;
 

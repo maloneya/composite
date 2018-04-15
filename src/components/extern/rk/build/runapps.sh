@@ -1,7 +1,6 @@
 #!/bin/bash
 PROG=$1
 SRCDIR=../../../implementation/rk/cnic/
-PROGDIR=../../../implementation/netbsd/$PROG
 COSOBJ=cnic.o
 FINALOBJ=rumpcos.o
 QEMURK=qemu_rk.sh
@@ -10,36 +9,36 @@ TRANSFERDIR=../../../../../transfer/
 cp ./$QEMURK ./$TRANSFERDIR
 
 localizesymsrc=( "__fpclassifyl"
-		"memset"
-		"memcpy"
-		"memchr"
-		"__umoddi3"
-		"__udivdi3"
-		"strlen"
-		"strcmp"
-		"strncpy"
-		"strcpy"
-		"__divdi3"
-		"strerror"
-		"sprintf"
-		"vsprintf"
-		"vfprintf"
-		"fwrite"
-		"wcrtomb"
-		"__fini_array_end"
-		"__fini_array_start"
-		"__init_array_end"
-		"__init_array_start"
-		"fputc"
-		)
+"memset"
+"memcpy"
+"memchr"
+"__umoddi3"
+"__udivdi3"
+"strlen"
+"strcmp"
+"strncpy"
+"strcpy"
+"__divdi3"
+"strerror"
+"sprintf"
+"vsprintf"
+"vfprintf"
+"fwrite"
+"wcrtomb"
+"__fini_array_end"
+"__fini_array_start"
+"__init_array_end"
+"__init_array_start"
+"fputc"
+)
 localizesymdst=( "_start"
-		"exit"
-		"socket"
-		"bind"
-		"recvfrom"
-		"sendto"
-		"printf"
-		)
+"exit"
+"socket"
+"bind"
+"recvfrom"
+"sendto"
+"printf"
+)
 
 if [ "$PROG" == "" ]; then
 	echo Please input an application name;
@@ -47,10 +46,19 @@ if [ "$PROG" == "" ]; then
 	pushd ../../../implementation/netbsd > /dev/null
 	echo
 	ls -1d */
+	echo http_tmr/
 	echo
 	popd > /dev/null
 	echo Do no include \"/\" in your selection
 	exit;
+fi
+
+echo "$PROG"
+if [ "$PROG" == "http_tmr" ]
+then
+	PROGDIR=../../../implementation/voter/voter_src
+else
+	PROGDIR=../../../implementation/netbsd/$PROG
 fi
 
 # Compile RK stub
@@ -69,6 +77,8 @@ objcopy -L calloc ./tmp.o
 objcopy -L free ./tmp.o
 objcopy -L mmap ./tmp.o
 objcopy -L strdup ./tmp.o
+objcopy -L getrlimit ./tmp.o
+objcopy -L getrlimit64 ./tmp.o
 ld -melf_i386 -r -o app.tmp tmp.o $SRCDIR/$COSOBJ
 
 # Defined in both cos and rk, localize one of them.

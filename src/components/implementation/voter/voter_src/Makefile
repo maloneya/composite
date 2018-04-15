@@ -1,8 +1,8 @@
- C_OBJS=main.o
+C_OBJS=main.o
 ASM_OBJS=
-COMPONENT=sl_voter_cpt.o
+COMPONENT=http_tmr.o
 INTERFACES=voter sched schedinit
-DEPENDENCIES=capmgr schedinit
+DEPENDENCIES=capmgr schedinit rk
 FN_PREPEND=parent_
 ADDITIONAL_LIBS=$(LIBSLCAPMGR) -lcobj_format -lsl_thd_static_backend -lsl_lock -lsl_mod_fprr
 OBJLIBS += $(POSIX_LIB)
