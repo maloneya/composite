@@ -9,10 +9,10 @@ use lib_composite::sl_lock::{Lock, LockGuard};
 use lib_composite::sl::Sl;
 use lib_composite::sys::sl::sl_thd_state;
 use lib_composite::sys::types;
+
+use lib_composite::memmgr_api::SharedMemoryReigon;
+
 use std::ops::DerefMut;
-use std::mem::replace;
-use std::slice;
-use std::boxed::Box;
 
 extern {
     fn get_num_replicas() -> i32;
@@ -22,6 +22,7 @@ extern {
 
 pub struct Voter {
     application: voter_lib::Component,
+    server_shrdmem: SharedMemoryReigon,
 }
 
 lazy_static! {
@@ -34,6 +35,7 @@ impl Voter {
     pub fn new(num_replicas: i32) -> Voter {
         Voter {
             application: voter_lib::Component::new(num_replicas),
+            server_shrdmem: SharedMemoryReigon::page_alloc(),
         }
     }
 
@@ -54,21 +56,21 @@ impl Voter {
         Voter::monitor_application(sl);
     }
 
-    pub fn replica_done_initializing(addr: *mut u8) {
-        let sl;
-        unsafe {
-            sl = Sl::assert_scheduler_already_started();
-        }
+    pub fn replica_done_initializing(shdmem_id: u32) {
+        let sl = unsafe {
+            Sl::assert_scheduler_already_started()
+        };
 
         let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
 
+
         for replica in &mut voter.application.replicas {
             if replica.id == 0 {
-                unsafe {
-                    replica.id = cos_inv_token_rs();
-                    let slice = slice::from_raw_parts_mut(addr,4096);
-                    replica.shrdmem = Some(Box::from_raw(slice));
-                }
+                replica.id = unsafe {
+                    cos_inv_token_rs()
+                };
+                replica.shrdmem = Some(SharedMemoryReigon::page_map(shdmem_id));
+
                 return;
             }
         }
@@ -82,8 +84,12 @@ impl Voter {
                 VoteStatus::Success(consensus) => {
                     println!("vote success");
                     consecutive_inconclusive = 0;
-                    let application_data = Voter::contact_server(consensus);
-                    Voter::transfer(&*VOTER, application_data, sl);
+
+                    let mut voter_lock_guard = Voter::try_lock_and_wait(&*VOTER, sl);
+                    let voter = voter_lock_guard.deref_mut();
+
+                    let (ret,is_data_from_server) = server_bindings::handle_request(consensus,&mut voter.server_shrdmem);
+                    voter.transfer(is_data_from_server,ret);
                 }
                 VoteStatus::Inconclusive(num_processing, _rep) => {
                     //track inconclusive for the case where only one replica is still processing
@@ -115,37 +121,26 @@ impl Voter {
         vote
     }
 
-    fn contact_server(serialized_msg: [u8; BUFF_SIZE]) -> [u8; BUFF_SIZE] {
-        server_bindings::handle_request(serialized_msg)
-    }
-
-    fn transfer(voter_lock: &Lock<Voter>, data: [u8; BUFF_SIZE], sl: Sl) {
-        let mut voter = Voter::try_lock_and_wait(voter_lock, sl);
-        for replica in &mut voter.deref_mut().application.replicas {
-            // replica.shrdmem.as_mut().unwrap()[0] = data.len() as u8;
-            // replica.shrdmem.as_mut().unwrap()[1..1+BUFF_SIZE].copy_from_slice(&data);
-            let shrdmem = replica.shrdmem.as_mut().unwrap();
-            //TODO - try returning int maybe that wont corrupt stack
-            shrdmem[0] = BUFF_SIZE as u8; //store amount of data to read in first space
-            for i in 1..BUFF_SIZE+1 {
-                shrdmem[i] = data[i - 1];
+    fn transfer(&mut self, is_data_from_server:bool, ret:i32) {
+        for replica in &mut self.application.replicas {
+            replica.ret = Some(ret);
+            if is_data_from_server {
+                let replica_shdmem = replica.shrdmem.as_mut().unwrap();
+                replica_shdmem.mem[..].copy_from_slice(&self.server_shrdmem.mem[..])
             }
         }
 
-        voter.deref_mut().application.wake_all();
+        self.application.wake_all();
     }
 
-    pub fn request(data_size: i32, op:i32, replica_id: types::spdid_t) {
-        let sl:Sl;
-        unsafe {
-            sl = Sl::assert_scheduler_already_started();
-        }
+    pub fn request(replica_id: types::spdid_t, op:i32, data_size:usize, args:[u8;MAX_ARGS], sl:Sl) {
         println!("Rep {} making request", replica_id);
 
         {
             let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
-            voter.application.get_replica_by_spdid(replica_id).unwrap().request(op,data_size,sl);
+            voter.application.get_replica_by_spdid(replica_id).unwrap().request(op,data_size,args,sl);
         }
+
         sl.block();
     }
 
