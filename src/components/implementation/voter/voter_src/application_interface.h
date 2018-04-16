@@ -11,6 +11,7 @@
 #define SOCKET 2
 #define BIND   3
 #define ACCEPT 4
+#define LISTEN 5
 
 int request(int opcode, int shdmem_size, int *args);
 
@@ -66,6 +67,15 @@ _voter_accept(int sockfd,size_t size)
 	pack_args(args,sockfd,0,0);
 
 	return request(ACCEPT, size, args);
+}
+
+int
+_voter_listen(int sockfd, int backlog)
+{
+	int args[MAX_ARGS];
+	pack_args(args,sockfd,backlog,0);
+
+	return request(LISTEN, 0, args);
 }
 
 #endif /* APPLICATION_INTERFACE_H */

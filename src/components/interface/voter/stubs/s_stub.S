@@ -15,4 +15,5 @@ cos_asm_server_stub(_voter_read)
 cos_asm_server_stub(_voter_socket)
 cos_asm_server_stub(_voter_bind)
 cos_asm_server_stub(_voter_accept)
+\cos_asm_server_stub(_voter_listen)
 

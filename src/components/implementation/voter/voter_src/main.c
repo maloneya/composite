@@ -235,7 +235,7 @@ schedinit_self(void)
 {
 	/* if my init is done and i've all child inits */
 	if (self_init && num_child_init == sched_num_childsched_get()) {
-		if (parent_schedinit_child() < 0) assert(0);
+		//if (parent_schedinit_child() < 0) assert(0);
 
 		return 0;
 	}

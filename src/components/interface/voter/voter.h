@@ -89,6 +89,16 @@ voter_socketcall(int call, unsigned long *args)
 
 			break;
 		}
+		case 4: { /* listen */
+			int sockfd, backlog;
+
+			sockfd  = *args;
+			backlog = *(args + 1);
+
+			ret = _voter_listen(sockfd, backlog);
+
+			break;
+		}
 		case 5: { /* accept */
 			int sockfd;
 			struct sockaddr *sock_addr;

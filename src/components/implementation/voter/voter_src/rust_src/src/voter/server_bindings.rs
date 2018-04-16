@@ -10,6 +10,7 @@ const READ:u8    = 1;
 const SOCKET:u8  = 2;
 const BIND:u8    = 3;
 const ACCEPT:u8  = 4;
+const LISTEN:u8  = 5;
 
 /* serialized_msg offsets */
 const OP:usize = 0;
@@ -24,6 +25,7 @@ extern {
     pub fn rk_socket(domain:c_int, type_arg:c_int, protocol:c_int) -> c_int;
     pub fn rk_bind(sockfd: c_int, shdmem_id:c_int, addrlen:c_uint) -> c_int;
     pub fn rk_accept(sockfd:c_int, shdmem_id:c_int) -> c_int;
+    pub fn rk_listen(sockfd:c_int, backlog:c_int) -> c_int;
 }
 
 /* 
@@ -44,6 +46,7 @@ pub fn handle_request(serialized_msg: &[u8], server_shrdmem_lock: &Lock<SharedMe
         SOCKET => socket(data),
         BIND   => bind(data, server_shrdmem),
         ACCEPT => accept(data, server_shrdmem),
+        LISTEN => listen(data),
         _ => panic!("op {:?} not supported", op),
     }
 }
@@ -103,4 +106,13 @@ fn accept(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     
     let ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
     (ret,true)
+}
+
+fn listen(data: &[u8]) -> (i32,bool) {
+    println!("voter listen");
+    let sockfd = data[ARGS] as i32;
+    let backlog = data[ARGS + 1] as i32;
+
+    let ret = unsafe {rk_listen(sockfd,backlog)};
+    (ret,false)
 }
