@@ -232,6 +232,7 @@ cos_tls_alloc(struct bmk_thread *thread)
 {
 	char *tlsmem;
 
+	printc("thread: %p, cos_tid: %d\n", thread, thread->cos_tid);
 	tlsmem = memmgr_tls_alloc(thread->cos_tid);
 	return tlsmem + tcboffset;
 }
@@ -259,6 +260,47 @@ sched_child_init(struct sched_childinfo *schedci)
 	t = initthd;
 }
 
+extern unsigned int self_init, num_child_init;
+extern thdcap_t capmgr_thd_retrieve_next(spdid_t child, thdid_t *tid);
+
+thdcap_t voter_thds[MAX_NUM_THREADS];
+
+int
+schedinit_child(void)
+{
+	spdid_t c = cos_inv_token();
+	printc("IN RK schedinit_child, their spdid: %d\n", c);
+	thdid_t thdid  = 0;
+	struct cos_defcompinfo *dci;
+	struct sched_childinfo *ci;
+
+	if (!c) return -1;
+	ci  = sched_childinfo_find(c);
+	/* is a child sched? */
+	if (!ci || !(ci->flags & COMP_FLAG_SCHED)) return -1;
+	dci = sched_child_defci_get(ci);
+	if (!dci) return -1;
+
+	/* thd retrieve */
+	do {
+		struct sl_thd *child_thd = NULL;
+		struct cos_aep_info aep;
+
+		memset(&aep, 0, sizeof(struct cos_aep_info));
+		aep.thd = capmgr_thd_retrieve_next(c, &thdid);
+		if (!thdid) break;
+		printc("thdid of child sched: %d\n", thdid);
+		printc("our thdcap of child thd: %lu\n", aep.thd);
+		voter_thds[thdid] = aep.thd;
+
+	} while (thdid);
+	num_child_init++;
+
+	return 0;
+}
+
+int voter_inv_thdid = 0;
+
 void
 cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 		void (*f)(void *), void *arg,
@@ -266,10 +308,9 @@ cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 {
 	int ret;
 
-	/*
-	 * printc("cos_cpu_sched_create: thread->bt_name = %s, f: %p, in spdid: %d\n", thread->bt_name, f,
-	 *	   cos_spdid_get());
-	 */
+	printc("cos_cpu_sched_create: thread->bt_name = %s, f: %p, in spdid: %d\n",
+		thread->bt_name, f, cos_spdid_get());
+
 
 	/* Check to see if we are creating the thread for our application */
 	if (!strcmp(thread->bt_name, "user_lwp") && CHILD_ISNT_SCHEDULER) {
@@ -292,11 +333,21 @@ cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 
 	} else if (!strcmp(thread->bt_name, "user_lwp") && !CHILD_ISNT_SCHEDULER) {
 		sched_childinfo_init();
+	} else if (!strcmp(thread->bt_name, "voter_inv_thd")) {
+		assert(voter_inv_thdid && voter_thds[voter_inv_thdid]);
+		printc("voter_inv_thdid: %d\n", voter_inv_thdid);
+		printc("thdcap for thdid: %lu\n", voter_thds[voter_inv_thdid]);
+		/* Reset it in case another thread needs to invoke us from voter */
+		voter_inv_thdid = 0;
+		assert(0);
+
 	} else {
 		t = rk_rump_thd_alloc(f, arg);
 		assert(t);
 	}
 
+	printc("New thread: %p with tid: %d, and tcap: %lu\n",
+		t, t->aepinfo->tid, sl_thd_thdcap(t));
 	set_cos_thddata(thread, sl_thd_thdcap(t), t->aepinfo->tid);
 }
 

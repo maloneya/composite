@@ -195,6 +195,7 @@ sl_thd_alloc(cos_thd_fn_t fn, void *data)
 {
 	struct sl_thd *t = NULL;
 
+	printc("%s\n", __func__);
 	sl_cs_enter();
 	t = sl_thd_alloc_no_cs(fn, data);
 	sl_cs_exit();

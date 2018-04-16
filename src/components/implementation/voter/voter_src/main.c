@@ -283,11 +283,8 @@ cos_init()
 
 	sl_init(SL_MIN_PERIOD_US);
 
-	printc("Getting sl thread cur\n");
 	t = sl_thd_curr();
-	printc("Assinging thread data...");
 	assign_thread_data(t);
-	printc(" done\n");
 
 	sched_childinfo_init();
 

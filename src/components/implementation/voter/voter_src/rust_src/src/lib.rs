@@ -12,6 +12,8 @@ use libc::c_int;
 
 extern {
     fn cos_inv_token_rs() -> types::spdid_t;
+    fn sl_thdid_rs() -> types::thdid_t;
+    fn rk_create_thread_context(tid: types::thdid_t) -> c_int;
 }
 
 #[no_mangle]
@@ -20,7 +22,6 @@ pub extern "C" fn replica_done_initializing_rust(shdmem_id: i32) {
     voter::Voter::replica_done_initializing(shdmem_id);
 }
 
-/* FFI Bug - parameters passed to this function get corrupted */
 #[no_mangle]
 pub extern "C" fn replica_request(opcode: c_int, data_size: c_int, args_ptr:*mut c_int) {
     let sl = unsafe {Sl::assert_scheduler_already_started()};
@@ -39,8 +40,12 @@ pub extern "C" fn replica_request(opcode: c_int, data_size: c_int, args_ptr:*mut
 #[no_mangle]
 pub extern "C" fn rust_init() {
     let api = unsafe { DefKernelAPI::assert_already_initialized() };
-    Sl::start_scheduler_loop_without_initializing(api, voter::voter_config::REP_PRIO, move |sl: Sl| {
+    Sl::child_start_scheduler_loop_without_initializing(api, voter::voter_config::REP_PRIO, move |sl: Sl| {
         println!("Entered Scheduling loop\n");
+
+        let tid = unsafe {sl_thdid_rs()};
+        println!("Creating RK context for thread {}",tid);
+        unsafe {rk_create_thread_context(tid)};
 
         voter::Voter::initialize(sl);
     });

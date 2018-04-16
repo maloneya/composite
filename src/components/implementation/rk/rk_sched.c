@@ -101,14 +101,29 @@ rk_subsys_thd_init(thdcap_t thd, arcvcap_t rcv, tcap_t tc, asndcap_t snd, int is
 }
 
 struct sl_thd *
+rk_rump_thd_alloc_no_sched(cos_thd_fn_t fn, void *data)
+{
+	struct sl_thd *t = NULL;
+
+	printc("%s, %d\n", __FILE__, __LINE__);
+	t = sl_thd_alloc(fn, data);
+	assert(t);
+
+	return t;
+}
+
+struct sl_thd *
 rk_rump_thd_alloc(cos_thd_fn_t fn, void *data)
 {
 	struct sl_thd *t = NULL;
 
+	printc("%s, %d\n", __FILE__, __LINE__);
 	t = sl_thd_alloc(fn, data);
 	assert(t);
 
+	printc("%s, %d\n", __FILE__, __LINE__);
 	rk_rump_thd_param_set(t);
+	printc("%s, %d\n", __FILE__, __LINE__);
 
 	return t;
 }

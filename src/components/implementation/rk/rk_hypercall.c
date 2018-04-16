@@ -28,11 +28,34 @@ int     rump___sysimpl_ftruncate(int, off_t);
 ssize_t rump___sysimpl_write(int, const void *, size_t);
 ssize_t rump___sysimpl_read(int, const void *, size_t);
 void   *rump_mmap(void *, size_t, int, int, int, off_t);
+int	rumpuser_thread_create(void *(*f)(void *), void *arg, const char *thrname,
+				int joinable, int pri, int cpuidx, void **tptr);
+
 
 /* These synchronous invocations involve calls to and from a RumpKernel */
 //extern struct cringbuf *vmrb;
 /* TODO when rumpbooter is its own interface, have this as an exported symbol */
 struct cringbuf *vmrb = NULL;
+
+static void *
+func_stub(void *unused)
+{
+	printc("IN PTHREAD STUB FOR INVOKING COMPONENT, THIS SHOULD NEVER BE SCHEDULED\n");
+	assert(0);
+	return NULL;
+}
+
+extern int voter_inv_thdid;
+
+int
+rk_create_thread_context(int thdid)
+{
+	printc("%s, thdid: %d\n", __func__, thdid);
+	void *tptr;
+	void *data = NULL;
+	voter_inv_thdid = thdid;
+	return rumpuser_thread_create(func_stub, data, "voter_inv_thd", 0, 0, 0, &tptr);
+}
 
 int
 test_entry(int arg1, int arg2, int arg3, int arg4)
@@ -140,6 +163,7 @@ int
 rk_socket(int domain, int type, int protocol)
 {
 	printc("RK socket\n");
+	printc("domain: %d, type: %d, protocol: %d\n", domain, type, protocol);
 	return rump___sysimpl_socket30(domain, type, protocol);
 }
 

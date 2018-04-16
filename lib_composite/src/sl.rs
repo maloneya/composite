@@ -11,7 +11,7 @@ use super::sys::types;
 // The friend C file should provide these symobls
 extern {
     fn assign_thread_data(thd: *mut sl::sl_thd);
-    fn print_hack(n: i8);
+    fn schedinit_child() -> i32;
 }
 
 
@@ -46,11 +46,19 @@ impl Sl {
         }
         Self::start_scheduler_loop_without_initializing(d, root_thread_priority, entrypoint);
     }
-
     pub fn start_scheduler_loop_without_initializing<F: FnBox(Sl) + Send + 'static>(_: DefKernelAPI, root_thread_priority: u32, entrypoint: F) {
         let mut root_thread = Sl.spawn(entrypoint);
         root_thread.set_param(ThreadParameter::Priority(root_thread_priority));
         unsafe {
+            sl::sl_sched_loop()
+        }
+    }
+    pub fn child_start_scheduler_loop_without_initializing<F: FnBox(Sl) + Send + 'static>(_: DefKernelAPI, root_thread_priority: u32, entrypoint: F) {
+        let mut root_thread = Sl.spawn(entrypoint);
+        root_thread.set_param(ThreadParameter::Priority(root_thread_priority));
+        unsafe {
+            println!("caling schedinit_child");
+            schedinit_child();
             sl::sl_sched_loop()
         }
     }

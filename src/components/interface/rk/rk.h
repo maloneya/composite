@@ -22,5 +22,7 @@ int	rk_unlink(int arg1);
 int	rk_ftruncate(int arg1, int arg2);
 int	rk_getsockname(int arg1, int arg2);
 int	rk_getpeername(int arg1, int arg2);
+int	rk_create_thread_context(int thdid);
+int	schedinit_child(void);
 
 #endif /* RK_H */
