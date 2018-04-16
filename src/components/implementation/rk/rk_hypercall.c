@@ -37,6 +37,9 @@ int	rumpuser_thread_create(void *(*f)(void *), void *arg, const char *thrname,
 /* TODO when rumpbooter is its own interface, have this as an exported symbol */
 struct cringbuf *vmrb = NULL;
 
+vaddr_t buf = 0;
+int old_shdmem_id = -1;
+
 static void *
 func_stub(void *unused)
 {
@@ -99,8 +102,6 @@ rk_select(int arg1, int arg2)
 
 	int nd = arg1, ret;
 	int shdmem_id = arg2;
-	static int old_shdmem_id = -1;
-	static vaddr_t buf = 0;
 	vaddr_t tmp;
 	fd_set *in = NULL, *ou = NULL, *ex = NULL;
 	struct timeval *tv = NULL;
@@ -134,23 +135,23 @@ rk_accept(int arg1, int arg2)
 
 	int s = arg1, ret;
 	int shdmem_id = arg2;
-	static int old_shdmem_id = -1;
-	static vaddr_t buff = 0;
 	vaddr_t tmp;
 	struct sockaddr *name;
 	socklen_t *anamelen;
 
-	printc("rk_accept, shdmem_id: %d\n", shdmem_id);
+	printc("rk_accept, shdmem_id: %d, old_shdmem_id: %d\n", shdmem_id, old_shdmem_id);
+	printc("buf: %p\n", (void *)buf);
 
-	if (old_shdmem_id != shdmem_id || !buff) {
+	printc("WARNING, RK_ACCEPT NOT MAPPING MORE PAGES, THIS ONLY WORKS FOR HTTP_TMR\n");
+	if (old_shdmem_id != shdmem_id || !buf) {
 		old_shdmem_id = shdmem_id;
-		ret = memmgr_shared_page_map(shdmem_id, &buff);
+		ret = memmgr_shared_page_map(shdmem_id, &buf);
 		assert(ret);
 	}
 
-	assert(buff && (old_shdmem_id == shdmem_id));
+	assert(buf && (old_shdmem_id == shdmem_id));
 
-	tmp = buff;
+	tmp = buf;
 	name = (struct sockaddr *)tmp;
 	tmp += sizeof(struct sockaddr);
 	anamelen = (socklen_t *)tmp;
@@ -178,22 +179,20 @@ rk_open(int arg1, int arg2, int arg3)
 	int shdmem_id, ret, flags;
 	mode_t mode;
 	const char *path;
-	static const void *buf = NULL;
-	static int old_shdmem_id = -1;
 
 	shdmem_id = arg1;
 	flags     = arg2;
 	mode    = (mode_t)arg3;
 
-	if (buf == NULL || old_shdmem_id != shdmem_id) {
+	if (!buf || old_shdmem_id != shdmem_id) {
 		old_shdmem_id = shdmem_id;
-		ret = memmgr_shared_page_map(shdmem_id, (vaddr_t *)&buf);
+		ret = memmgr_shared_page_map(shdmem_id, &buf);
 		assert(ret);
 	}
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	path = buf;
+	path = (const char *)buf;
 
 	printc("path: %s, flags: %d, mode: %d\n", path, flags, mode);
 	return rump___sysimpl_open(path, flags, mode);
@@ -203,21 +202,19 @@ int
 rk_unlink(int arg1)
 {
 	int shdmem_id, ret;
-	static int old_shdmem_id = -1;
 	const char *path;
-	static const void *buf = NULL;
 
 	shdmem_id = arg1;
 
-	if (buf == NULL || old_shdmem_id != shdmem_id) {
+	if (!buf || old_shdmem_id != shdmem_id) {
 		old_shdmem_id = shdmem_id;
-		ret = memmgr_shared_page_map(shdmem_id, (vaddr_t *)&buf);
+		ret = memmgr_shared_page_map(shdmem_id, &buf);
 		assert(ret);
 	}
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	path = buf;
+	path = (const char *)buf;
 	printc("path: %s\n", path);
 	return rump___sysimpl_unlink(path);
 }
@@ -228,10 +225,15 @@ rk_bind(int sockfd, int shdmem_id, socklen_t socklen)
 	printc("RK bind\n");
 	const struct sockaddr *sock = NULL;
 	int ret;
-	vaddr_t addr;
-	ret = memmgr_shared_page_map(shdmem_id, &addr);
-	assert(ret > -1 && addr);
-	sock = (const struct sockaddr *)addr;
+
+	if (!buf || old_shdmem_id != shdmem_id) {
+		old_shdmem_id = shdmem_id;
+		ret = memmgr_shared_page_map(shdmem_id, &buf);
+		assert(ret);
+	}
+
+	assert(ret > -1 && buf);
+	sock = (const struct sockaddr *)buf;
 	return rump___sysimpl_bind(sockfd, sock, socklen);
 }
 
@@ -330,7 +332,6 @@ rk_setsockopt(int arg1, int arg2, int arg3)
 {
 	int sockfd, level, optname, shdmem_id, ret;
 	static void *optval = NULL;
-	static int old_shdmem_id = -1;
 	socklen_t optlen;
 
 	sockfd     = (arg1 >> 16);
@@ -374,46 +375,42 @@ long
 rk_write(int arg1, int arg2, int arg3)
 {
 	int fd, shdmem_id, ret;
-	static const void *buf = NULL;
-	static int old_shdmem_id = -1;
 	size_t nbyte;
 
 	fd        = arg1;
 	shdmem_id = arg2;
 	nbyte     = (size_t)arg3;
 
-	if (buf == NULL || old_shdmem_id != shdmem_id) {
+	if (!buf || old_shdmem_id != shdmem_id) {
 		old_shdmem_id = shdmem_id;
-		ret = memmgr_shared_page_map(shdmem_id, (vaddr_t *)&buf);
+		ret = memmgr_shared_page_map(shdmem_id, &buf);
 		assert(ret);
 	}
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	return (long)rump___sysimpl_write(fd, buf, nbyte);
+	return (long)rump___sysimpl_write(fd, (const void *)buf, nbyte);
 }
 
 long
 rk_read(int arg1, int arg2, int arg3)
 {
 	int fd, shdmem_id, ret;
-	static const void *buf = NULL;
-	static int old_shdmem_id = -1;
 	size_t nbyte;
 
 	fd        = arg1;
 	shdmem_id = arg2;
 	nbyte     = (size_t)arg3;
 
-	if (buf == NULL || old_shdmem_id != shdmem_id) {
+	if (!buf || old_shdmem_id != shdmem_id) {
 		old_shdmem_id = shdmem_id;
-		ret = memmgr_shared_page_map(shdmem_id, (vaddr_t *)&buf);
+		ret = memmgr_shared_page_map(shdmem_id, &buf);
 		assert(ret);
 	}
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	return (long)rump___sysimpl_read(fd, buf, nbyte);
+	return (long)rump___sysimpl_read(fd, (const void *)buf, nbyte);
 }
 
 int
@@ -434,7 +431,6 @@ rk_clock_gettime(int arg1, int arg2)
 	int shdmem_id, ret;
 	clockid_t clock_id;
 	static struct timespec *tp = NULL;
-	static int old_shdmem_id = -1;
 
 	clock_id  = (clockid_t)arg1;
 	shdmem_id = arg2;
@@ -458,8 +454,6 @@ int
 rk_getsockname(int arg1, int arg2)
 {
 	int shdmem_id, ret, fdes;
-	static int old_shdmem_id = -1;
-	static vaddr_t buf = 0;
 	struct sockaddr *asa;
 	socklen_t *alen;
 	vaddr_t tmp;
@@ -488,8 +482,6 @@ int
 rk_getpeername(int arg1, int arg2)
 {
 	int shdmem_id, ret, fdes;
-	static int old_shdmem_id = -1;
-	static vaddr_t buf = 0;
 	struct sockaddr *asa;
 	socklen_t *alen;
 	vaddr_t tmp;
