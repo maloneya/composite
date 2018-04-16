@@ -72,6 +72,7 @@ voter_socketcall(int call, unsigned long *args)
 			protocol = *(args + 2);
 
 			ret = _voter_socket(domain,type,protocol);
+			printc("voter socket ret: %d\n", ret);
 
 			break;
 		}

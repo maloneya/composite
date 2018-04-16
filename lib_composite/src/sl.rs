@@ -11,7 +11,7 @@ use super::sys::types;
 // The friend C file should provide these symobls
 extern {
     fn assign_thread_data(thd: *mut sl::sl_thd);
-    fn schedinit_child() -> i32;
+    fn parent_schedinit_child() -> i32;
 }
 
 
@@ -57,8 +57,8 @@ impl Sl {
         let mut root_thread = Sl.spawn(entrypoint);
         root_thread.set_param(ThreadParameter::Priority(root_thread_priority));
         unsafe {
-            println!("caling schedinit_child");
-            schedinit_child();
+            println!("caling parent schedinit_child");
+            parent_schedinit_child();
             sl::sl_sched_loop()
         }
     }

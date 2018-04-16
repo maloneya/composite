@@ -172,7 +172,9 @@ assign_thread_data(struct sl_thd *thread)
 	backing_thread_data[thdid].robust_list.head = &backing_thread_data[thdid].robust_list.head;
 	backing_thread_data[thdid].tsd = calloc(PTHREAD_KEYS_MAX, sizeof(void*));
 
-	void *addr = memmgr_tls_alloc(thdid);
+	/* Increment by c because the RK dereferences its tls backwards and if we didn't do this the regions wouldn't line up */
+	void *addr = memmgr_tls_alloc(thdid) + 0x0000000c;
+	printc("tls addr: %p for thdid: %d\n", (void *)addr, sl_thd_thdid(thread));
 	cos_thd_mod(ci, thdcap, addr);
 
 	*(void **)addr = &backing_thread_data[thdid];

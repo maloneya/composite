@@ -54,7 +54,9 @@ rk_create_thread_context(int thdid)
 	void *tptr;
 	void *data = NULL;
 	voter_inv_thdid = thdid;
-	return rumpuser_thread_create(func_stub, data, "voter_inv_thd", 0, 0, 0, &tptr);
+	rumpuser_thread_create(func_stub, data, "voter_inv_thd", 0, 0, 0, &tptr);
+	printc("%s, %d\n", __func__, __LINE__);
+	return 0;
 }
 
 int
