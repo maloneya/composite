@@ -218,9 +218,7 @@ int boot_thd = BOOT_CAPTBL_SELF_INITTHD_BASE;
 
 int
 cos_tls_init(unsigned long tp, thdcap_t tc)
-{
-	return cos_thd_mod(currci, tc, (void *)tp);
-}
+{ return cos_thd_mod(currci, tc, (void *)tp); }
 
 extern int tcboffset;
 extern int tdatasize;
@@ -292,7 +290,6 @@ schedinit_child(void)
 		printc("thdid of child sched: %d\n", thdid);
 		printc("our thdcap of child thd: %lu\n", aep.thd);
 		voter_thds[thdid] = aep.thd;
-
 	} while (thdid);
 	num_child_init++;
 
@@ -337,10 +334,11 @@ cos_cpu_sched_create(struct bmk_thread *thread, struct bmk_tcb *tcb,
 		assert(voter_inv_thdid && voter_thds[voter_inv_thdid]);
 		printc("voter_inv_thdid: %d\n", voter_inv_thdid);
 		printc("thdcap for thdid: %lu\n", voter_thds[voter_inv_thdid]);
+		set_cos_thddata(thread, voter_thds[voter_inv_thdid], voter_inv_thdid);
+
 		/* Reset it in case another thread needs to invoke us from voter */
 		voter_inv_thdid = 0;
-		assert(0);
-
+		return;
 	} else {
 		t = rk_rump_thd_alloc(f, arg);
 		assert(t);

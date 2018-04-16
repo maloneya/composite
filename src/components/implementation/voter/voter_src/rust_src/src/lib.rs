@@ -46,6 +46,7 @@ pub extern "C" fn rust_init() {
         let tid = unsafe {sl_thdid_rs()};
         println!("Creating RK context for thread {}",tid);
         unsafe {rk_create_thread_context(tid)};
+        println!("Done creating rk context");
 
         voter::Voter::initialize(sl);
     });

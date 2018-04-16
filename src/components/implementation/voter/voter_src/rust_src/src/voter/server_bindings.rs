@@ -32,7 +32,7 @@ extern {
  */
 pub fn handle_request(serialized_msg: &[u8], server_shrdmem_lock: &Lock<SharedMemoryReigon>) -> (i32,bool) {
     let op = serialized_msg[OP];
-    let data = &serialized_msg[OP..];
+    let data = &serialized_msg[OP+1..];
     println!("Voter making call:{:?}", op);
 
     let mut server_shrdmem = server_shrdmem_lock.lock();
@@ -76,6 +76,7 @@ fn socket(data: &[u8]) -> (i32,bool) {
     let type_arg = data[ARGS+1] as i32;
     let protocol = data[ARGS+2] as i32;
 
+    println!("size {} domain {} type {} proto {}",data[SIZE], domain, type_arg,protocol);
     let ret = unsafe {rk_socket(domain,type_arg,protocol)} as i32;
     (ret,false)
 }

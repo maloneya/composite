@@ -18,7 +18,7 @@ static inline void
 pack_args(int * args, int arg1, int arg2, int arg3)
 {
 	args[0] = arg1;
-	args[1] = arg2; 
+	args[1] = arg2;
 	args[2] = arg3;
 }
 
@@ -37,13 +37,13 @@ _voter_read(int fd, size_t nbyte)
 {
 	int args[MAX_ARGS];
 	pack_args(args,fd,0,0);
-	
+
 	return request(READ,nbyte,args);
 }
 
 int
 _voter_socket(int domain, int type, int protocol)
-{ 
+{
 	int args[MAX_ARGS];
 	pack_args(args,domain,type,protocol);
 
