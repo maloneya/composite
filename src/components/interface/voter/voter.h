@@ -17,6 +17,7 @@ int  _voter_read(int fd, size_t nbyte);
 int  _voter_socket(int domain, int type, int protocol);
 int  _voter_bind(int sockfd, socklen_t addrlen);
 int  _voter_accept(int sockfd, size_t size);
+int  _voter_listen(int sockfd, int backlog);
 
 void
 _shdmem_write_at(void * data, int size, int start_offset)

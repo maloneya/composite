@@ -23,7 +23,7 @@ pub extern "C" fn replica_done_initializing_rust(shdmem_id: i32) {
 }
 
 #[no_mangle]
-pub extern "C" fn replica_request(opcode: c_int, data_size: c_int, args_ptr:*mut c_int) {
+pub extern "C" fn replica_request(opcode: c_int, data_size: c_int, args_ptr:*mut c_int) -> i32 {
     let sl = unsafe {Sl::assert_scheduler_already_started()};
     let replica_id = unsafe {cos_inv_token_rs()};
 
@@ -34,7 +34,7 @@ pub extern "C" fn replica_request(opcode: c_int, data_size: c_int, args_ptr:*mut
         }
     }
 
-    voter::Voter::request(replica_id,opcode,data_size as usize,args,sl);
+    voter::Voter::request(replica_id,opcode,data_size as usize,args,sl)
 }
 
 #[no_mangle]

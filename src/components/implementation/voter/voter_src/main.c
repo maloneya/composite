@@ -186,7 +186,7 @@ assign_thread_data(struct sl_thd *thread)
 
 /*rust init also begins sched loop */
 extern void rust_init();
-extern void replica_request(int opcode, int shdmem_size, int * args);
+extern int replica_request(int opcode, int shdmem_size, int * args);
 extern void replica_done_initializing_rust(int shdmem_id);
 
 int voter_initialized = 0;
@@ -227,8 +227,7 @@ request(int opcode,int shdmem_size, int *args)
 	/* this should be taken out of the request path.*/
 	assign_thread_data(t);
 
-	replica_request(opcode, shdmem_size, args);
-	return 0;
+	return replica_request(opcode, shdmem_size, args);
 }
 
 

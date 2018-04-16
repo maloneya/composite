@@ -137,7 +137,7 @@ impl Voter {
         self.application.wake_all();
     }
 
-    pub fn request(replica_id: types::spdid_t, op:i32, data_size:usize, args:[u8;MAX_ARGS], sl:Sl) {
+    pub fn request(replica_id: types::spdid_t, op:i32, data_size:usize, args:[u8;MAX_ARGS], sl:Sl) -> i32 {
         println!("Rep {} making request", replica_id);
 
         {
@@ -146,6 +146,9 @@ impl Voter {
         }
 
         sl.block();
+
+       let mut voter = Voter::try_lock_and_wait(&*VOTER, sl);
+       voter.application.get_replica_by_spdid(replica_id).unwrap().ret.take().unwrap()
     }
 
     //unsure if this is actually still necessary. now that we fixed the WOKE race
