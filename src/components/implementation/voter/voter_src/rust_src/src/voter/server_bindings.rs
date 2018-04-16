@@ -1,4 +1,6 @@
 use lib_composite::memmgr_api::SharedMemoryReigon;
+use lib_composite::sl_lock::{Lock, LockGuard};
+use std::ops::DerefMut;
 use voter::voter_config::BUFF_SIZE;
 use voter::voter_config::MAX_ARGS;
 use libc::{c_int, size_t, c_uint, c_long};
@@ -28,10 +30,13 @@ extern {
  * ret 1: i32: return value from sinv to rk 
  * ret 2: bool: true if data from rk_shrdmem needs to be copied to each replica
  */
-pub fn handle_request(serialized_msg: [u8; BUFF_SIZE], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
+pub fn handle_request(serialized_msg: &[u8], server_shrdmem_lock: &Lock<SharedMemoryReigon>) -> (i32,bool) {
     let op = serialized_msg[OP];
     let data = &serialized_msg[OP..];
     println!("Voter making call:{:?}", op);
+
+    let mut server_shrdmem = server_shrdmem_lock.lock();
+    let mut server_shrdmem = server_shrdmem.deref_mut();
 
     match op {
         WRITE  => write(data, server_shrdmem),

@@ -22,7 +22,7 @@ extern {
 
 pub struct Voter {
     application: voter_lib::Component,
-    server_shrdmem: SharedMemoryReigon,
+    server_shrdmem: Lock<SharedMemoryReigon>,
 }
 
 lazy_static! {
@@ -33,9 +33,11 @@ lazy_static! {
 
 impl Voter {
     pub fn new(num_replicas: i32) -> Voter {
+        let sl = unsafe {Sl::assert_scheduler_already_started()};
+
         Voter {
             application: voter_lib::Component::new(num_replicas),
-            server_shrdmem: SharedMemoryReigon::page_alloc(),
+            server_shrdmem: Lock::new(sl,SharedMemoryReigon::page_alloc()),
         }
     }
 
@@ -81,14 +83,15 @@ impl Voter {
         let mut consecutive_inconclusive = 0;
         loop {
             match Voter::monitor_vote(&*VOTER, consecutive_inconclusive, sl) {
-                VoteStatus::Success(consensus) => {
+                VoteStatus::Success => {
                     println!("vote success");
                     consecutive_inconclusive = 0;
 
                     let mut voter_lock_guard = Voter::try_lock_and_wait(&*VOTER, sl);
                     let voter = voter_lock_guard.deref_mut();
 
-                    let (ret,is_data_from_server) = server_bindings::handle_request(consensus,&mut voter.server_shrdmem);
+                    let (ret,is_data_from_server) = server_bindings::handle_request(&voter.application.replicas[0].data_buffer,
+                                                                                    &voter.server_shrdmem);
                     voter.transfer(is_data_from_server,ret);
                 }
                 VoteStatus::Inconclusive(num_processing, _rep) => {
@@ -105,10 +108,11 @@ impl Voter {
 
     fn monitor_vote(voter_lock: &Lock<Voter>, consecutive_inconclusive: u8, sl: Sl) -> voter_lib::VoteStatus {
         println!("Getting Vote");
-        let mut voter = Voter::try_lock_and_wait(voter_lock, sl);
-        let vote = voter.deref_mut().application.collect_vote();
+        let mut voter_lock_guard = Voter::try_lock_and_wait(voter_lock, sl);
+        let voter = voter_lock_guard.deref_mut();
+        let vote = voter.application.collect_vote();
         match vote {
-            VoteStatus::Success(_consensus) => (),
+            VoteStatus::Success => (),
             VoteStatus::Fail(replica_id) => voter.application.get_replica_by_spdid(replica_id).unwrap().recover(),
             VoteStatus::Inconclusive(_num_processing, replica_id) => {
                 if consecutive_inconclusive > voter_config::MAX_INCONCLUSIVE {
@@ -126,7 +130,7 @@ impl Voter {
             replica.ret = Some(ret);
             if is_data_from_server {
                 let replica_shdmem = replica.shrdmem.as_mut().unwrap();
-                replica_shdmem.mem[..].copy_from_slice(&self.server_shrdmem.mem[..])
+                replica_shdmem.mem[..].copy_from_slice(&self.server_shrdmem.lock().deref_mut().mem[..])
             }
         }
 

@@ -10,7 +10,7 @@ use voter::voter_config::*;
 pub enum VoteStatus {
     Fail(types::spdid_t),              /*stores divergent replica id*/
     Inconclusive(u8, types::spdid_t),  /*number of replicas in processing state, id of replica in processing*/
-    Success([u8; BUFF_SIZE]), /*agreed upon message*/
+    Success, 
 }
 
 pub struct Replica {
@@ -49,7 +49,7 @@ impl fmt::Debug for VoteStatus {
             "Status: {}",
             match self {
                 &VoteStatus::Inconclusive(num_processing, rep) => format!("Inconclusive {}:{:?}", num_processing, rep),
-                &VoteStatus::Success(consensus) => format!("Success: consensus request {:?}", consensus),
+                &VoteStatus::Success => format!("Success"),
                 &VoteStatus::Fail(rep) => format!("Fail - {:?}", rep),
             }
         )
@@ -108,7 +108,7 @@ impl Replica {
         self.data_buffer[data_start..data_end].copy_from_slice(&self.shrdmem.as_mut().unwrap().mem[..data_size]);
         self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
 
-        println!("reqeust wrote {:?}",self.data_buffer);
+        println!("reqeust wrote {:?}",&self.data_buffer[0..5]);
     }
 }
 
@@ -192,7 +192,7 @@ impl Component {
             return VoteStatus::Fail(self.find_faulted_msg());
         }
 
-        return VoteStatus::Success(self.replicas[0].data_buffer.clone());
+        return VoteStatus::Success;
     }
 
     pub fn validate_msgs(&self) -> bool {
