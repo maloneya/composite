@@ -100,10 +100,6 @@ fn bind(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
 fn accept(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     println!("voter accept");
     let fd = data[ARGS] as i32;
-
-    /* calcualte the length from where the data starts in the packed buffer */
-    let copy_len = data.len() - DATA;
-    server_shrdmem.mem[..copy_len].copy_from_slice(&data[DATA..]);
     
     let ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
     (ret,true)
