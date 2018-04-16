@@ -140,6 +140,8 @@ rk_accept(int arg1, int arg2)
 	struct sockaddr *name;
 	socklen_t *anamelen;
 
+	printc("rk_accept, shdmem_id: %d\n", shdmem_id);
+
 	if (old_shdmem_id != shdmem_id || !buff) {
 		old_shdmem_id = shdmem_id;
 		ret = memmgr_shared_page_map(shdmem_id, &buff);
@@ -153,6 +155,7 @@ rk_accept(int arg1, int arg2)
 	tmp += sizeof(struct sockaddr);
 	anamelen = (socklen_t *)tmp;
 
+	printc("rk_accept, s: %d, name: %p, anamelen: %p\n", s, name, anamelen);
 	return rump___sysimpl_accept(s, name, anamelen);
 }
 
@@ -421,6 +424,7 @@ rk_listen(int arg1, int arg2)
 	s       = arg1;
 	backlog = arg2;
 
+	printc("%s, s: %d, backlog: %d\n", __func__, s, backlog);
 	return rump___sysimpl_listen(s, backlog);
 }
 
