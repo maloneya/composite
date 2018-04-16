@@ -108,7 +108,7 @@ impl Replica {
         self.data_buffer[data_start..data_end].copy_from_slice(&self.shrdmem.as_mut().unwrap().mem[..data_size]);
         self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
 
-        println!("reqeust wrote {:?}",&self.data_buffer[0..5]);
+        println!("reqeust wrote {:?}",&self.data_buffer[0..4+data_size]);
     }
 }
 

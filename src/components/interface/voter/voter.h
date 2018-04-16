@@ -112,9 +112,6 @@ voter_socketcall(int call, unsigned long *args)
 
 			int size = sizeof(struct sockaddr);
 
-			_shdmem_write_at(sock_addr,size,0);
-			_shdmem_write_at(addrlen,sizeof(vaddr_t),size);
-
 			ret = _voter_accept(sockfd,size);
 
 			memcpy(sock_addr, (void *)shdmem_addr, size);
