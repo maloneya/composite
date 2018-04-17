@@ -1,5 +1,7 @@
 use lib_composite::memmgr_api::SharedMemoryReigon;
 use lib_composite::sl_lock::{Lock, LockGuard};
+use lib_composite::sl::Sl;
+use std::time::Duration;
 use std::ops::DerefMut;
 use voter::voter_config::BUFF_SIZE;
 use voter::voter_config::MAX_ARGS;
@@ -99,9 +101,16 @@ fn bind(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
 
 fn accept(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     println!("voter accept");
+    let sl = unsafe {
+        Sl::assert_scheduler_already_started()
+    };
     let fd = data[ARGS] as i32;
     
-    let ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
+    let mut ret = -1;
+    while ret == -1 {
+        ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
+        sl.block_for(Duration::new(0,1000000)); 
+    }
     (ret,true)
 }
 

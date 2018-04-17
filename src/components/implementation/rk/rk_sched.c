@@ -86,7 +86,6 @@ rk_subsys_thd_init(thdcap_t thd, arcvcap_t rcv, tcap_t tc, asndcap_t snd, int is
 	only_once ++;
 
 	subci->captbl_cap = BOOT_CAPTBL_SELF_CT;
-	printc("%lu %lu %lu %lu\n", thd, tc, rcv, snd);
 	subaep->thd = thd;
 	subaep->rcv = rcv;
 	subaep->tc = tc;
@@ -105,7 +104,6 @@ rk_rump_thd_alloc_no_sched(cos_thd_fn_t fn, void *data)
 {
 	struct sl_thd *t = NULL;
 
-	printc("%s, %d\n", __FILE__, __LINE__);
 	t = sl_thd_alloc(fn, data);
 	assert(t);
 
@@ -117,13 +115,10 @@ rk_rump_thd_alloc(cos_thd_fn_t fn, void *data)
 {
 	struct sl_thd *t = NULL;
 
-	printc("%s, %d\n", __FILE__, __LINE__);
 	t = sl_thd_alloc(fn, data);
 	assert(t);
 
-	printc("%s, %d\n", __FILE__, __LINE__);
 	rk_rump_thd_param_set(t);
-	printc("%s, %d\n", __FILE__, __LINE__);
 
 	return t;
 }
@@ -177,14 +172,17 @@ rk_sched_loop(void)
 void
 rk_sched_init(microsec_t period)
 {
-	printc("rk_sched_init...\n");
 	sl_init(period);
-	printc("done\n");
 }
 
 void
 rk_rump_thd_wakeup(struct bmk_thread *w)
 {
+	if (cos_inv_token()) return;
+	if (!strcmp(w->bt_name, "cachegc")) {
+		return;
+	}
+
 	sl_thd_wakeup(get_cos_thdid(w));
 }
 

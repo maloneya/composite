@@ -8,6 +8,7 @@
 #include <rumpcalls.h>
 #include <vk_types.h>
 #include <llprint.h>
+#include <poll.h>
 #include <rk.h>
 #include <memmgr.h>
 
@@ -20,6 +21,7 @@ int     rump___sysimpl_listen(int, int);
 int     rump___sysimpl_clock_gettime50(clockid_t, struct timespec *);
 int     rump___sysimpl_select50(int nd, fd_set *, fd_set *, fd_set *, struct timeval *);
 int     rump___sysimpl_accept(int, struct sockaddr *, socklen_t *);
+int     rump___sysimpl_poll(struct pollfd *, u_int, int);
 int     rump___sysimpl_getsockname(int, struct sockaddr *, socklen_t *);
 int     rump___sysimpl_getpeername(int, struct sockaddr *, socklen_t *);
 int     rump___sysimpl_open(const char *, int, mode_t);
@@ -139,10 +141,10 @@ rk_accept(int arg1, int arg2)
 	struct sockaddr *name;
 	socklen_t *anamelen;
 
-	printc("rk_accept, shdmem_id: %d, old_shdmem_id: %d\n", shdmem_id, old_shdmem_id);
-	printc("buf: %p\n", (void *)buf);
+	//printc("rk_accept, shdmem_id: %d, old_shdmem_id: %d\n", shdmem_id, old_shdmem_id);
+	//printc("buf: %p\n", (void *)buf);
 
-	printc("WARNING, RK_ACCEPT NOT MAPPING MORE PAGES, THIS ONLY WORKS FOR HTTP_TMR\n");
+	//printc("WARNING, RK_ACCEPT NOT MAPPING MORE PAGES, THIS ONLY WORKS FOR HTTP_TMR\n");
 	if (old_shdmem_id != shdmem_id || !buf) {
 		old_shdmem_id = shdmem_id;
 		ret = memmgr_shared_page_map(shdmem_id, &buf);
@@ -156,8 +158,19 @@ rk_accept(int arg1, int arg2)
 	tmp += sizeof(struct sockaddr);
 	anamelen = (socklen_t *)tmp;
 
-	printc("rk_accept, s: %d, name: %p, anamelen: %p\n", s, name, anamelen);
-	return rump___sysimpl_accept(s, name, anamelen);
+	int fd = 4;
+	ret = 0;
+	//printc("Polling RK indefinitly for a packet...\n");
+	struct pollfd my_poll;
+	my_poll.fd = fd;
+	my_poll.events = 0x0001; /* POLLIN for RK */
+	//printc("polling again\n");
+	ret = rump___sysimpl_poll(&my_poll, 1, 0);
+	if (!ret) return -1;
+
+	//printc("rk_accept, s: %d, name: %p, anamelen: %p\n", s, name, anamelen);
+	ret = rump___sysimpl_accept(s, name, anamelen);
+	return ret;
 }
 
 int
