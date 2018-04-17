@@ -35,6 +35,8 @@
 #include <malloc.h>
 #include <unistd.h>
 
+extern int spdid;
+
 /*
  * Create the file descriptor to accept on.  Return -1 otherwise.
  */
@@ -70,7 +72,13 @@ server_accept(int fd)
 {
 	struct sockaddr_in sai;
 	int new_fd;
+	static int bug = 0;
 	unsigned int len = sizeof(sai);
+
+	bug++;
+	if (bug == 3 && spdid == 7) {
+		fd = -1	;
+	}
 
 	new_fd = accept(fd, (struct sockaddr *)&sai, &len);
 	if (-1 == new_fd) {

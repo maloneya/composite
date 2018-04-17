@@ -35,6 +35,8 @@
 #include <malloc.h>
 #include <unistd.h>
 
+extern int spdid;
+
 /*
  * Create the file descriptor to accept on.  Return -1 otherwise.
  */

@@ -96,11 +96,8 @@ main(int argc, char *argv[])
 	if (accept_fd < 0) return -1;
 
 	int i = 0;
-	while(1) server_single_request(accept_fd);
-	if (spdid == 5) {
-		printf("I'M CRASHING! ERROR\n");
-		while(1);
-	}
+	while (1) server_single_request(accept_fd);
+
 	/* NO CLOSE!!! */
 	//close(accept_fd);
 
