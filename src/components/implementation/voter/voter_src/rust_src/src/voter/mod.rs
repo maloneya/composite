@@ -100,7 +100,7 @@ impl Voter {
                         consecutive_inconclusive += 1;
                     }
                 }
-                VoteStatus::Fail(_rep) => panic!("Replica Fault"), //TODO - handle faults
+                VoteStatus::Fail(_rep) =>(),
             }
             sl.thd_yield();
         }

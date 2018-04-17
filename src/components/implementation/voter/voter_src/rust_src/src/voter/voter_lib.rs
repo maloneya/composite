@@ -95,6 +95,7 @@ impl Replica {
 
     //TODO!
     pub fn recover(&mut self) {
+        println!("Replica {} faulted",self.id);
         self.faulted = true;
     }
 
