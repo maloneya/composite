@@ -198,8 +198,20 @@ impl Component {
 
     pub fn validate_msgs(&self) -> bool {
         //compare each message against the first to look for difference (handle detecting fault later)
-        let ref msg = &self.replicas[0].data_buffer;
+
+        let mut healthy_msg_id = MAX_REPS + 1;
+        for i in 0..MAX_REPS {
+            if !self.replicas[i].faulted {
+                healthy_msg_id = i;
+                break;
+            }
+        }
+        assert_ne!(healthy_msg_id,MAX_REPS + 1);
+
+        let ref mut msg = &self.replicas[healthy_msg_id].data_buffer;
+
         for replica in &self.replicas {
+            if replica.faulted {continue;}
             if !compare_msgs(msg, &replica.data_buffer) {
                 return false;
             }
