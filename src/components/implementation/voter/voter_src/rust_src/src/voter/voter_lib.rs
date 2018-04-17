@@ -19,6 +19,7 @@ pub struct Replica {
     pub shrdmem: Option<SharedMemoryReigon>,
     pub data_buffer: [u8; BUFF_SIZE],
     pub ret: Option<i32>,
+    pub faulted: bool,
 }
 
 pub struct Component {
@@ -70,10 +71,12 @@ impl Replica {
             shrdmem: None,
             data_buffer: [0; BUFF_SIZE],
             ret: None,
+            faulted: false
         }
     }
 
     pub fn is_processing(&self) -> bool {
+        if self.faulted {return false;}
         let thd = self.thd.as_ref();
         if thd.is_some() {
             return thd.unwrap().get_state() == sl_thd_state::SL_THD_RUNNABLE;
@@ -82,6 +85,7 @@ impl Replica {
     }
 
     pub fn is_blocked(&self) -> bool {
+        if self.faulted {return true;}
         let thd = self.thd.as_ref();
         if thd.is_some() {
             return thd.unwrap().get_state() == sl_thd_state::SL_THD_BLOCKED;
@@ -91,7 +95,7 @@ impl Replica {
 
     //TODO!
     pub fn recover(&mut self) {
-        panic!("Replica {:?} must be recovered", self.id);;
+        self.faulted = true;
     }
 
     pub fn request(&mut self, op:i32, data_size: usize, args:[u8;MAX_ARGS], sl: Sl) {
@@ -153,6 +157,7 @@ impl Component {
 
     pub fn wake_all(&mut self) {
         for replica in &mut self.replicas {
+            if replica.faulted {continue;}
             replica.thd.take().unwrap().wakeup();
         }
     }

@@ -127,6 +127,7 @@ impl Voter {
 
     fn transfer(&mut self, is_data_from_server:bool, ret:i32) {
         for replica in &mut self.application.replicas {
+            if replica.faulted {continue;}
             replica.ret = Some(ret);
             if is_data_from_server {
                 let replica_shdmem = replica.shrdmem.as_mut().unwrap();
