@@ -95,20 +95,16 @@ impl Replica {
     }
 
     pub fn request(&mut self, op:i32, data_size: usize, args:[u8;MAX_ARGS], sl: Sl) {
-        /* if the reqeust wont fit in the buffer dont write - let the vote fail */
-        if data_size + MAX_ARGS + 2 >= BUFF_SIZE {return} /* find way to communicate this error */
-
-
         let data_start = 2+MAX_ARGS;
-        let data_end = data_start + data_size;
+        let data_end = data_start + PAGE_SIZE;
         /* pack replica data buffer with request information */
         self.data_buffer[0] = op as u8;
         self.data_buffer[1] = data_size as u8;
         self.data_buffer[2..2+MAX_ARGS].copy_from_slice(&args[..]);
-        self.data_buffer[data_start..data_end].copy_from_slice(&self.shrdmem.as_mut().unwrap().mem[..data_size]);
+        self.data_buffer[data_start..data_end].copy_from_slice(&self.shrdmem.as_mut().unwrap().mem[..]);
         self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
 
-        println!("reqeust wrote {:?}",&self.data_buffer[0..4+data_size]);
+        println!("reqeust wrote {:?}",&self.data_buffer[0..10]);
     }
 }
 
