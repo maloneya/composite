@@ -178,11 +178,15 @@ rk_sched_init(microsec_t period)
 void
 rk_rump_thd_wakeup(struct bmk_thread *w)
 {
-	if (cos_inv_token()) return;
+	if (cos_inv_token()) {
+		printc("%s waking up by: %d\n", w->bt_name, cos_inv_token());
+	}
 	if (!strcmp(w->bt_name, "cachegc")) {
 		return;
 	}
 
+	//printc("waking up: %s\n", w->bt_name);
+	if (!strcmp(w->bt_name, "voter_inv_thd")) return;
 	sl_thd_wakeup(get_cos_thdid(w));
 }
 
@@ -191,7 +195,21 @@ rk_rump_thd_block_timeout(struct bmk_thread *c, unsigned long long timeout)
 {
 	assert(get_cos_thdid(c) == cos_thdid());
 
-	if (sl_thd_block_timeout(0, timeout)) return 1;
+	if (!strcmp(c->bt_name, "isrthr")) {
+		sl_thd_yield(0);
+		return 0;
+	}
+	if (!strcmp(c->bt_name, "rsi0/1")) {
+		sl_thd_yield(0);
+		return 0;
+	}
+	if (!strcmp(c->bt_name, "rsi0/2")) {
+		sl_thd_yield(0);
+		return 0;
+	}
+
+	//if (sl_thd_block_timeout(0, timeout)) return 1;
+	sl_thd_yield(0);
 
 	return 0;
 }
@@ -201,7 +219,29 @@ rk_rump_thd_block(struct bmk_thread *c)
 {
 	assert(get_cos_thdid(c) == cos_thdid());
 
-	sl_thd_block(0);
+	//printc("trying to block: %s\n", c->bt_name);
+
+	if (!strcmp(c->bt_name, "isrthr")) {
+		sl_thd_yield(0);
+		return;
+	}
+	if (!strcmp(c->bt_name, "rsi0/1")) {
+		sl_thd_yield(0);
+		return;
+	}
+	if (!strcmp(c->bt_name, "rsi0/2")) {
+		sl_thd_yield(0);
+		return;
+	}
+	if (!strcmp(c->bt_name, "rsi0/3")) {
+		sl_thd_yield(0);
+		return;
+	}
+
+	//printc("blocking %s\n", c->bt_name);
+
+	//sl_thd_block(0);
+	sl_thd_yield(0);
 }
 
 void

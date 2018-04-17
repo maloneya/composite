@@ -55,6 +55,9 @@ pub fn handle_request(serialized_msg: &[u8], server_shrdmem_lock: &Lock<SharedMe
 
 fn write(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     println!("voter performing write");
+    let sl = unsafe {
+        Sl::assert_scheduler_already_started()
+    };
     let size = data[SIZE] as usize;
     let fd = data[ARGS] as i32;
 
@@ -108,8 +111,8 @@ fn accept(data: &[u8], server_shrdmem: &mut SharedMemoryReigon) -> (i32,bool) {
     
     let mut ret = -1;
     while ret == -1 {
+        //sl.block_for(Duration::new(0,100000)); 
         ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
-        sl.block_for(Duration::new(0,1000000)); 
     }
     (ret,true)
 }

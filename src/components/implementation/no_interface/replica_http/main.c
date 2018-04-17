@@ -76,6 +76,8 @@ server_single_request(int accept_fd)
 	return;
 }
 
+int spdid;
+
 int
 main(int argc, char *argv[])
 {
@@ -94,17 +96,17 @@ main(int argc, char *argv[])
 	if (accept_fd < 0) return -1;
 
 	int i = 0;
-	for (; i < 5 ; i++) {
-		server_single_request(accept_fd);
+	while(1) server_single_request(accept_fd);
+	if (spdid == 5) {
+		printf("I'M CRASHING! ERROR\n");
+		while(1);
 	}
-	while(1) printf("ERROR\n");
 	/* NO CLOSE!!! */
 	//close(accept_fd);
 
 	return 0;
 }
 
-int spdid;
 extern struct cos_component_information cos_comp_info;
 
 void

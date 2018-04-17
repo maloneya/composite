@@ -140,6 +140,7 @@ rk_accept(int arg1, int arg2)
 	vaddr_t tmp;
 	struct sockaddr *name;
 	socklen_t *anamelen;
+	//printc("%s, enter\n", __func__);
 
 	//printc("rk_accept, shdmem_id: %d, old_shdmem_id: %d\n", shdmem_id, old_shdmem_id);
 	//printc("buf: %p\n", (void *)buf);
@@ -170,6 +171,7 @@ rk_accept(int arg1, int arg2)
 
 	//printc("rk_accept, s: %d, name: %p, anamelen: %p\n", s, name, anamelen);
 	ret = rump___sysimpl_accept(s, name, anamelen);
+	//printc("%s, exit\n", __func__);
 	return ret;
 }
 
@@ -189,6 +191,7 @@ rk_socket(int domain, int type, int protocol)
 int
 rk_open(int arg1, int arg2, int arg3)
 {
+	printc("%s, enter\n", __func__);
 	int shdmem_id, ret, flags;
 	mode_t mode;
 	const char *path;
@@ -235,6 +238,7 @@ rk_unlink(int arg1)
 int
 rk_bind(int sockfd, int shdmem_id, socklen_t socklen)
 {
+	printc("%s, enter\n", __func__);
 	printc("RK bind\n");
 	const struct sockaddr *sock = NULL;
 	int ret;
@@ -387,7 +391,9 @@ rk_mmap(int arg1, int arg2, int arg3)
 long
 rk_write(int arg1, int arg2, int arg3)
 {
+	printc("%s, enter\n", __func__);
 	int fd, shdmem_id, ret;
+	long rv;
 	size_t nbyte;
 
 	fd        = arg1;
@@ -402,12 +408,16 @@ rk_write(int arg1, int arg2, int arg3)
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	return (long)rump___sysimpl_write(fd, (const void *)buf, nbyte);
+	printc("%s, writing to fd: %d, nbyte: %d\n", __func__, fd, nbyte);
+	rv = (long)rump___sysimpl_write(fd, (const void *)buf, nbyte);
+	printc("%s, exit\n", __func__);
+	return rv;
 }
 
 long
 rk_read(int arg1, int arg2, int arg3)
 {
+	printc("%s, enter\n", __func__);
 	int fd, shdmem_id, ret;
 	size_t nbyte;
 
@@ -423,19 +433,27 @@ rk_read(int arg1, int arg2, int arg3)
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	return (long)rump___sysimpl_read(fd, (const void *)buf, nbyte);
+	printc("num to read: %d\n", nbyte);
+	nbyte = 1024;
+	ret = (long)rump___sysimpl_read(fd, (const void *)buf, nbyte);
+	printc("num read: %d\n", ret);
+	printc("%s, exit\n", __func__);
+	return ret;
 }
 
 int
 rk_listen(int arg1, int arg2)
 {
-	int s, backlog;
+	printc("%s, enter\n", __func__);
+	int s, backlog, ret;
 
 	s       = arg1;
 	backlog = arg2;
 
 	printc("%s, s: %d, backlog: %d\n", __func__, s, backlog);
-	return rump___sysimpl_listen(s, backlog);
+	ret = rump___sysimpl_listen(s, backlog);
+	printc("%s, exit\n", __func__);
+	return ret;
 }
 
 int
