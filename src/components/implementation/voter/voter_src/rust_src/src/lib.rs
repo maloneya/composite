@@ -2,6 +2,7 @@ mod voter;
 extern crate libc;
 #[macro_use]
 extern crate lazy_static;
+extern crate lib_rk;
 extern crate lib_composite;
 
 use lib_composite::kernel_api::DefKernelAPI;

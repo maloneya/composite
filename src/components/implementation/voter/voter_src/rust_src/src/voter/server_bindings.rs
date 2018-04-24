@@ -1,8 +1,8 @@
 use lib_composite::memmgr_api::SharedMemoryRegion;
 use lib_composite::sl_lock::Lock;
+use lib_rk::rk_hypercall_api;
 use std::ops::DerefMut;
 use voter::voter_config::MAX_ARGS;
-use libc::{c_int, size_t, c_uint, c_long};
 
 const WRITE:u8   = 0;
 const READ:u8    = 1;
@@ -17,15 +17,6 @@ const OP:usize = 0;
 const SIZE:usize = 0;
 const ARGS:usize = 1;
 const DATA:usize = ARGS + MAX_ARGS;
-
-extern {
-    pub fn rk_write(fd:c_int, shdmem_id:c_int, size: size_t) -> c_long;
-    pub fn rk_read(fd:c_int, shdmem_id:c_int, size: size_t) -> c_long;
-    pub fn rk_socket(domain:c_int, type_arg:c_int, protocol:c_int) -> c_int;
-    pub fn rk_bind(sockfd: c_int, shdmem_id:c_int, addrlen:c_uint) -> c_int;
-    pub fn rk_accept(sockfd:c_int, shdmem_id:c_int) -> c_int;
-    pub fn rk_listen(sockfd:c_int, backlog:c_int) -> c_int;
-}
 
 /*
  * ret 1: i32: return value from sinv to rk
@@ -59,7 +50,7 @@ fn write(data: &[u8], server_shrdmem: &mut SharedMemoryRegion) -> (i32,bool) {
     /* calculate the length from where the data starts in the packed buffer */
     let copy_len = data.len() - DATA;
     server_shrdmem.mem[..copy_len].copy_from_slice(&data[DATA..]);
-    let ret = unsafe {rk_write(fd,server_shrdmem.id as i32,size)} as i32;
+    let ret = rk_hypercall_api::write(fd,server_shrdmem.id as i32,size);
     (ret,false)
 }
 
@@ -68,7 +59,7 @@ fn read(data: &[u8], server_shrdmem: &mut SharedMemoryRegion) -> (i32,bool) {
     let size = data[SIZE] as usize;
     let fd = data[ARGS] as i32;
 
-    let ret = unsafe {rk_read(fd,server_shrdmem.id as i32, size)} as i32;
+    let ret = rk_hypercall_api::read(fd,server_shrdmem.id as i32, size);
     (ret,true)
 }
 
@@ -80,7 +71,7 @@ fn socket(data: &[u8]) -> (i32,bool) {
     let protocol = data[ARGS+2] as i32;
 
     println!("size {} domain {} type {} proto {}",data[SIZE], domain, type_arg,protocol);
-    let ret = unsafe {rk_socket(domain,type_arg,protocol)} as i32;
+    let ret = rk_hypercall_api::socket(domain,type_arg,protocol);
     (ret,false)
 }
 
@@ -93,7 +84,7 @@ fn bind(data: &[u8], server_shrdmem: &mut SharedMemoryRegion) -> (i32,bool) {
     /* calculate the length from where the data starts in the packed buffer */
     let copy_len = data.len() - DATA;
     server_shrdmem.mem[..copy_len].copy_from_slice(&data[DATA..]);
-    let ret = unsafe {rk_bind(fd,server_shrdmem.id as i32,addrlen)} as i32;
+    let ret = rk_hypercall_api::bind(fd,server_shrdmem.id as i32,addrlen);
     (ret,false)
 }
 
@@ -104,7 +95,7 @@ fn accept(data: &[u8], server_shrdmem: &mut SharedMemoryRegion) -> (i32,bool) {
 
     let mut ret = -1;
     while ret == -1 {
-        ret = unsafe {rk_accept(fd, server_shrdmem.id as i32)} as i32;
+        ret = rk_hypercall_api::accept(fd, server_shrdmem.id as i32);
     }
     (ret,true)
 }
@@ -114,6 +105,6 @@ fn listen(data: &[u8]) -> (i32,bool) {
     let sockfd = data[ARGS] as i32;
     let backlog = data[ARGS + 1] as i32;
 
-    let ret = unsafe {rk_listen(sockfd,backlog)};
+    let ret = rk_hypercall_api::listen(sockfd,backlog);
     (ret,false)
 }
