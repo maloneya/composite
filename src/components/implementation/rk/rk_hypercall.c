@@ -55,12 +55,10 @@ extern int voter_inv_thdid;
 int
 rk_create_thread_context(int thdid)
 {
-	printc("%s, thdid: %d\n", __func__, thdid);
 	void *tptr;
 	void *data = NULL;
 	voter_inv_thdid = thdid;
 	rumpuser_thread_create(func_stub, data, "voter_inv_thd", 0, 0, 0, &tptr);
-	printc("%s, %d\n", __func__, __LINE__);
 	return 0;
 }
 
@@ -139,13 +137,9 @@ rk_accept(int arg1, int arg2)
 	int shdmem_id = arg2;
 	vaddr_t tmp;
 	struct sockaddr *name;
+	struct pollfd my_poll;
 	socklen_t *anamelen;
-	//printc("%s, enter\n", __func__);
 
-	//printc("rk_accept, shdmem_id: %d, old_shdmem_id: %d\n", shdmem_id, old_shdmem_id);
-	//printc("buf: %p\n", (void *)buf);
-
-	//printc("WARNING, RK_ACCEPT NOT MAPPING MORE PAGES, THIS ONLY WORKS FOR HTTP_TMR\n");
 	if (old_shdmem_id != shdmem_id || !buf) {
 		old_shdmem_id = shdmem_id;
 		ret = memmgr_shared_page_map(shdmem_id, &buf);
@@ -161,17 +155,13 @@ rk_accept(int arg1, int arg2)
 
 	int fd = 4;
 	ret = 0;
-	//printc("Polling RK indefinitly for a packet...\n");
-	struct pollfd my_poll;
+
 	my_poll.fd = fd;
 	my_poll.events = 0x0001; /* POLLIN for RK */
-	//printc("polling again\n");
 	ret = rump___sysimpl_poll(&my_poll, 1, 0);
 	if (!ret) return -1;
 
-	//printc("rk_accept, s: %d, name: %p, anamelen: %p\n", s, name, anamelen);
 	ret = rump___sysimpl_accept(s, name, anamelen);
-	//printc("%s, exit\n", __func__);
 	return ret;
 }
 
@@ -183,15 +173,12 @@ get_boot_done(void) {
 int
 rk_socket(int domain, int type, int protocol)
 {
-	printc("RK socket\n");
-	printc("domain: %d, type: %d, protocol: %d\n", domain, type, protocol);
 	return rump___sysimpl_socket30(domain, type, protocol);
 }
 
 int
 rk_open(int arg1, int arg2, int arg3)
 {
-	printc("%s, enter\n", __func__);
 	int shdmem_id, ret, flags;
 	mode_t mode;
 	const char *path;
@@ -210,7 +197,6 @@ rk_open(int arg1, int arg2, int arg3)
 
 	path = (const char *)buf;
 
-	printc("path: %s, flags: %d, mode: %d\n", path, flags, mode);
 	return rump___sysimpl_open(path, flags, mode);
 }
 
@@ -231,15 +217,12 @@ rk_unlink(int arg1)
 	assert(buf && (shdmem_id == old_shdmem_id));
 
 	path = (const char *)buf;
-	printc("path: %s\n", path);
 	return rump___sysimpl_unlink(path);
 }
 
 int
 rk_bind(int sockfd, int shdmem_id, socklen_t socklen)
 {
-	printc("%s, enter\n", __func__);
-	printc("RK bind\n");
 	const struct sockaddr *sock = NULL;
 	int ret;
 
@@ -269,8 +252,6 @@ rk_recvfrom(int arg1, int arg2, int arg3)
 	socklen_t *from_addr_len_ptr;
 	int s, buff_shdmem_id, flags, from_shdmem_id, from_addr_len, ret;
 	size_t len;
-
-	printc("RK recvfrom\n");
 
 	s = (arg1 >> 16);
 	buff_shdmem_id = (arg1 << 16) >> 16;
@@ -324,8 +305,6 @@ rk_sendto(int arg1, int arg2, int arg3)
 	flags             = (arg2 << 16) >> 16;
 	addr_shdmem_id    = (arg3 >> 16);
 	addrlen           = (arg3 << 16) >> 16;
-
-	printc("RK sendto\n");
 
 	if (shdmem_id == -1 && buff == 0) {
 		shdmem_id = buff_shdmem_id;
@@ -391,7 +370,6 @@ rk_mmap(int arg1, int arg2, int arg3)
 long
 rk_write(int arg1, int arg2, int arg3)
 {
-	printc("%s, enter\n", __func__);
 	int fd, shdmem_id, ret;
 	long rv;
 	size_t nbyte;
@@ -408,16 +386,13 @@ rk_write(int arg1, int arg2, int arg3)
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	printc("%s, writing to fd: %d, nbyte: %d\n", __func__, fd, nbyte);
 	rv = (long)rump___sysimpl_write(fd, (const void *)buf, nbyte);
-	printc("%s, exit\n", __func__);
 	return rv;
 }
 
 long
 rk_read(int arg1, int arg2, int arg3)
 {
-	printc("%s, enter\n", __func__);
 	int fd, shdmem_id, ret;
 	size_t nbyte;
 
@@ -433,26 +408,20 @@ rk_read(int arg1, int arg2, int arg3)
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
-	printc("num to read: %d\n", nbyte);
 	nbyte = 1024;
 	ret = (long)rump___sysimpl_read(fd, (const void *)buf, nbyte);
-	printc("num read: %d\n", ret);
-	printc("%s, exit\n", __func__);
 	return ret;
 }
 
 int
 rk_listen(int arg1, int arg2)
 {
-	printc("%s, enter\n", __func__);
 	int s, backlog, ret;
 
 	s       = arg1;
 	backlog = arg2;
 
-	printc("%s, s: %d, backlog: %d\n", __func__, s, backlog);
 	ret = rump___sysimpl_listen(s, backlog);
-	printc("%s, exit\n", __func__);
 	return ret;
 }
 
