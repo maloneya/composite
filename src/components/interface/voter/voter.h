@@ -43,6 +43,7 @@ int
 voter_write(int fd, void *buf, int count)
 {
 	assert(fd);
+	printc("write size %d\n",count);
 
 	_shdmem_write(buf,count);
 	return _voter_write(fd,count);

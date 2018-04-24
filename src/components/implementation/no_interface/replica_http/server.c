@@ -76,9 +76,9 @@ server_accept(int fd)
 	unsigned int len = sizeof(sai);
 
 	bug++;
-	if (bug == 3 && spdid == 7) {
+	if (bug == 7 && spdid == 7) {
 		int i = 0;
-		for (; i < 100 ; i++) printf("ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR!\n");
+		for (; i < 300 ; i++) printf("ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR! ERROR!\n");
 		printf("HALTING\n");
 		fd = -1	;
 	}

@@ -386,7 +386,9 @@ rk_write(int arg1, int arg2, int arg3)
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
+	nbyte = (nbyte == 0) ? 2048 : nbyte;
 	rv = (long)rump___sysimpl_write(fd, (const void *)buf, nbyte);
+
 	return rv;
 }
 
@@ -408,8 +410,10 @@ rk_read(int arg1, int arg2, int arg3)
 
 	assert(buf && (shdmem_id == old_shdmem_id));
 
+	/* Magic value, 32bit numbers don't work in rust currently, so this the return size doesn't fit, always make it 1024 */
 	nbyte = 1024;
 	ret = (long)rump___sysimpl_read(fd, (const void *)buf, nbyte);
+
 	return ret;
 }
 
@@ -422,6 +426,7 @@ rk_listen(int arg1, int arg2)
 	backlog = arg2;
 
 	ret = rump___sysimpl_listen(s, backlog);
+
 	return ret;
 }
 

@@ -109,7 +109,7 @@ impl Replica {
         self.data_buffer[data_start..data_end].copy_from_slice(&self.shrdmem.as_mut().unwrap().mem[..]);
         self.thd = Some(Thread {thread_id: sl.current_thread().thdid()});
 
-        println!("reqeust wrote {:?}",&self.data_buffer[0..10]);
+        println!("request Vote {:?}",&self.data_buffer[0..10]);
     }
 }
 
