@@ -1,0 +1,6 @@
+[package]
+name = "lib_rk"
+version = "0.1.0"
+authors = ["Alex Maloney <maloney.a12@gmail.com>"]
+
+[dependencies]
