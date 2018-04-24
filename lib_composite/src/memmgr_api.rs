@@ -1,17 +1,17 @@
 use super::sys::memmgr::{memmgr_shared_page_alloc,memmgr_shared_page_map};
-use super::sys::types::{cbuf_t,vaddr_t};
+use super::sys::types::vaddr_t;
 use std::slice;
 
 const PAGE_SIZE:usize = 4096;
 
 #[derive(Debug)]
-pub struct SharedMemoryReigon {
+pub struct SharedMemoryRegion {
 	pub id: i32,
 	pub mem: Box<[u8]>,
 }
 
-impl SharedMemoryReigon {
-	pub fn page_alloc() -> SharedMemoryReigon {
+impl SharedMemoryRegion {
+	pub fn page_alloc() -> SharedMemoryRegion {
 		unsafe {
 			let addr: *mut vaddr_t = 0 as *mut vaddr_t;
 			let id:i32;
@@ -20,14 +20,14 @@ impl SharedMemoryReigon {
 
             let slice = slice::from_raw_parts_mut(addr as *mut u8,PAGE_SIZE);
 
-			SharedMemoryReigon {
+			SharedMemoryRegion {
 				id,
 				mem: Box::from_raw(slice),
 			}
 		}
 	}
 
-	pub fn page_map(id: i32) -> SharedMemoryReigon {
+	pub fn page_map(id: i32) -> SharedMemoryRegion {
 		unsafe {
 			let addr: *mut vaddr_t = 0 as *mut vaddr_t;
 			let ret = memmgr_shared_page_map(id,&addr);
@@ -35,7 +35,7 @@ impl SharedMemoryReigon {
 
 			let slice = slice::from_raw_parts_mut(addr as *mut u8,PAGE_SIZE);
 
-			SharedMemoryReigon {
+			SharedMemoryRegion {
 				id,
 				mem: Box::from_raw(slice),
 			}

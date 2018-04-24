@@ -9,7 +9,6 @@
 int shdmem_id;
 vaddr_t shdmem_addr;
 
-
 /* internal calls */
 void _replica_done_initializing(int shdmem_id);
 int  _voter_write(int fd, int count);
@@ -43,7 +42,6 @@ int
 voter_write(int fd, void *buf, int count)
 {
 	assert(fd);
-	printc("write size %d\n",count);
 
 	_shdmem_write(buf,count);
 	return _voter_write(fd,count);
@@ -74,7 +72,6 @@ voter_socketcall(int call, unsigned long *args)
 			protocol = *(args + 2);
 
 			ret = _voter_socket(domain,type,protocol);
-			printc("voter socket ret: %d\n", ret);
 
 			break;
 		}

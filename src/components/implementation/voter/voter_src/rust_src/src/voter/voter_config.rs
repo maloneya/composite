@@ -8,7 +8,7 @@ pub const MAX_INCONCLUSIVE: u8 = 10;
 pub const MAX_REPS: usize = 3;
 //size of the data buffer passed between application and server components.
 pub const BUFF_SIZE: usize = PAGE_SIZE + MAX_ARGS + 2;
-//largest number of arguments passed from incomming sinv reqeusts 
+//largest number of arguments passed from incoming sinv requests
 pub const MAX_ARGS: usize = 3;
 
 pub const PAGE_SIZE: usize = 4096;

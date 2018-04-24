@@ -5,13 +5,10 @@ mod server_bindings;
 use self::voter_lib::VoteStatus;
 use self::voter_config::*;
 use lib_composite::sl_lock::{Lock, LockGuard};
-
 use lib_composite::sl::Sl;
 use lib_composite::sys::sl::sl_thd_state;
 use lib_composite::sys::types;
-
-use lib_composite::memmgr_api::SharedMemoryReigon;
-
+use lib_composite::memmgr_api::SharedMemoryRegion;
 use std::ops::DerefMut;
 
 extern {
@@ -22,9 +19,10 @@ extern {
 
 pub struct Voter {
     application: voter_lib::Component,
-    server_shrdmem: Lock<SharedMemoryReigon>,
+    server_shrdmem: Lock<SharedMemoryRegion>,
 }
 
+/* Note - Lazy statics are triggered when the binding is referenced for the first time */
 lazy_static! {
     static ref VOTER:Lock<Voter> = unsafe {
         Lock::new(Sl::assert_scheduler_already_started(),Voter::new(get_num_replicas())
@@ -37,13 +35,14 @@ impl Voter {
 
         Voter {
             application: voter_lib::Component::new(num_replicas),
-            server_shrdmem: Lock::new(sl,SharedMemoryReigon::page_alloc()),
+            server_shrdmem: Lock::new(sl,SharedMemoryRegion::page_alloc()),
         }
     }
 
     pub fn initialize(sl:Sl) {
         loop {
             if {
+                /* First time this triggers the Lazy static which will call Voter::new() */
                 let voter = Voter::try_lock_and_wait(&*VOTER, sl);
                 voter.application.replicas_initialized()
             } {
@@ -71,7 +70,7 @@ impl Voter {
                 replica.id = unsafe {
                     cos_inv_token_rs()
                 };
-                replica.shrdmem = Some(SharedMemoryReigon::page_map(shdmem_id));
+                replica.shrdmem = Some(SharedMemoryRegion::page_map(shdmem_id));
 
                 return;
             }
@@ -94,12 +93,15 @@ impl Voter {
                                                                                     &voter.server_shrdmem);
                     voter.transfer(is_data_from_server,ret);
                 }
+
                 VoteStatus::Inconclusive(num_processing, _rep) => {
-                    //track inconclusive for the case where only one replica is still processing
+                    /* if only one replica is still processing increment the inconclusive tracker */
                     if num_processing == 1 {
                         consecutive_inconclusive += 1;
                     }
                 }
+
+                /* Fault "recovery" handled in monitor_vote */
                 VoteStatus::Fail(_rep) =>(),
             }
             sl.thd_yield();
@@ -110,10 +112,13 @@ impl Voter {
         println!("Getting Vote");
         let mut voter_lock_guard = Voter::try_lock_and_wait(voter_lock, sl);
         let voter = voter_lock_guard.deref_mut();
+
         let vote = voter.application.collect_vote();
         match vote {
             VoteStatus::Success => (),
+
             VoteStatus::Fail(replica_id) => voter.application.get_replica_by_spdid(replica_id).unwrap().recover(),
+
             VoteStatus::Inconclusive(_num_processing, replica_id) => {
                 if consecutive_inconclusive > voter_config::MAX_INCONCLUSIVE {
                     println!("Inconclusive breach!");
@@ -128,6 +133,7 @@ impl Voter {
     fn transfer(&mut self, is_data_from_server:bool, ret:i32) {
         for replica in &mut self.application.replicas {
             if replica.faulted {continue;}
+
             replica.ret = Some(ret);
             if is_data_from_server {
                 let replica_shdmem = replica.shrdmem.as_mut().unwrap();
@@ -152,7 +158,6 @@ impl Voter {
        voter.application.get_replica_by_spdid(replica_id).unwrap().ret.take().unwrap()
     }
 
-    //unsure if this is actually still necessary. now that we fixed the WOKE race
     fn try_lock_and_wait(voter_lock: &Lock<Voter>, sl: Sl) -> LockGuard<Voter> {
         let mut voter = voter_lock.try_lock();
         while voter.is_none() {

@@ -1,6 +1,4 @@
-use super::types::{vaddr_t, cbuf_t};
-use libc::c_ulong;
-
+use super::types::vaddr_t;
 
 extern {
 	pub fn memmgr_shared_page_alloc(pgaddr:&*mut vaddr_t) -> i32;

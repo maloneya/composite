@@ -24,8 +24,6 @@
 
 #include "application_interface.h"
 
-#include <rk.h>
-
 #define FIXED_PRIO 5
 #define FIXED_BUDGET_MS 2000
 #define FIXED_PERIOD_MS 10000
@@ -164,7 +162,7 @@ assign_thread_data(struct sl_thd *thread)
 	thdcap_t             thdcap = sl_thd_thdcap(thread);
 	thdid_t              thdid  = sl_thd_thdid(thread);
 
-	/* workaround */
+	/* if already set up */
 	if (backing_thread_data[thdid].tid == thdid) return;
 
 	/* HACK: We setup some thread specific data to make musl stuff work with sl threads */
@@ -172,9 +170,8 @@ assign_thread_data(struct sl_thd *thread)
 	backing_thread_data[thdid].robust_list.head = &backing_thread_data[thdid].robust_list.head;
 	backing_thread_data[thdid].tsd = calloc(PTHREAD_KEYS_MAX, sizeof(void*));
 
-	/* Increment by c because the RK dereferences its tls backwards and if we didn't do this the regions wouldn't line up */
+	/* RK HACK - Increment by c because the RK dereferences its tls backwards and if we didn't do this the regions wouldn't line up */
 	void *addr = memmgr_tls_alloc(thdid) + 0x0000000c;
-	printc("tls addr: %p for thdid: %d\n", (void *)addr, sl_thd_thdid(thread));
 	cos_thd_mod(ci, thdcap, addr);
 
 	*(void **)addr = &backing_thread_data[thdid];
@@ -184,7 +181,7 @@ assign_thread_data(struct sl_thd *thread)
 
 #define MAX_REPS 3
 
-/*rust init also begins sched loop */
+/* Note - rust init also begins sched loop */
 extern void rust_init();
 extern int replica_request(int opcode, int shdmem_size, int * args);
 extern void replica_done_initializing_rust(int shdmem_id);
@@ -234,10 +231,8 @@ request(int opcode,int shdmem_size, int *args)
 static int
 schedinit_self(void)
 {
-	/* if my init is done and i've all child inits */
+	/* if my init is done and I've all child inits */
 	if (self_init && num_child_init == sched_num_childsched_get()) {
-		//if (parent_schedinit_child() < 0) assert(0);
-
 		return 0;
 	}
 
@@ -296,4 +291,3 @@ cos_init()
 
 	rust_init();
 }
-

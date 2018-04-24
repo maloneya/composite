@@ -1,22 +1,21 @@
 use lib_composite::sl::{Sl, Thread};
-use lib_composite::memmgr_api::SharedMemoryReigon;
+use lib_composite::memmgr_api::SharedMemoryRegion;
 use lib_composite::sys::types;
 use std::fmt;
 use voter::*;
 use voter::voter_config::*;
 
-
 #[derive(PartialEq)]
 pub enum VoteStatus {
     Fail(types::spdid_t),              /*stores divergent replica id*/
     Inconclusive(u8, types::spdid_t),  /*number of replicas in processing state, id of replica in processing*/
-    Success, 
+    Success,
 }
 
 pub struct Replica {
     pub id:  types::spdid_t,
     pub thd: Option<Thread>,
-    pub shrdmem: Option<SharedMemoryReigon>,
+    pub shrdmem: Option<SharedMemoryRegion>,
     pub data_buffer: [u8; BUFF_SIZE],
     pub ret: Option<i32>,
     pub faulted: bool,
@@ -93,7 +92,6 @@ impl Replica {
         false
     }
 
-    //TODO!
     pub fn recover(&mut self) {
         println!("Replica {} faulted",self.id);
         self.faulted = true;
@@ -170,26 +168,26 @@ impl Component {
         for replica in &self.replicas {
             if replica.is_processing() {
                 num_processing += 1;
-                //rep id is only useful in the case where only 1 replica is still processing
-                //so it would only be set once in that case.
+                /* rep id is only useful in the case where only 1 replica is still processing
+                 * so it would only be set once in that case.
+                 */
                 processing_replica_id = replica.id;
             }
         }
 
-        //if any of the replicas are still processing bail.
+        /* if any of the replicas are still processing vote inconclusive. */
         if num_processing > 0 {
             return VoteStatus::Inconclusive(num_processing, processing_replica_id);
         }
 
+        /* Check that replicas are blocked */
         for replica in &self.replicas {
             if !replica.is_blocked() {
                 return VoteStatus::Inconclusive(num_processing, replica.id);
             }
         }
 
-        /* Check that replicas are infact blocked */
-
-        //check the request each replica has made
+        /* check the request each replica has made */
         if !self.validate_msgs() {
             return VoteStatus::Fail(self.find_faulted_msg());
         }
@@ -198,7 +196,7 @@ impl Component {
     }
 
     pub fn validate_msgs(&self) -> bool {
-        //compare each message against the first to look for difference (handle detecting fault later)
+        /* compare each message against the first to look for difference (handle detecting fault later) */
 
         let mut healthy_msg_id = MAX_REPS + 1;
         for i in 0..MAX_REPS {
@@ -220,12 +218,12 @@ impl Component {
 
         true
     }
-    //TODO return result
+
     pub fn find_faulted_msg(&self) -> types::spdid_t {
-        //store the number of replicas that agree, and rep id of sender
+        /* store the number of replicas that agree, and rep id of sender */
         let mut concensus: [u8; MAX_REPS] = [0; MAX_REPS];
 
-        //find which replica disagrees with the majority
+        /* find which replica disagrees with the majority */
         for i in 0..self.num_replicas {
             let msg_a = &self.replicas[i].data_buffer;
             for j in 0..self.num_replicas {
@@ -240,16 +238,18 @@ impl Component {
                 }
             }
         }
-        //go through consensus to get the rep id that sent the msg with least agreement
-        let mut min: u8 = 4;
-        let mut faulted:usize = 4;
+
+        /* go through consensus to get the rep id that sent the msg with least agreement */
+        let mut min: u8 = (MAX_REPS + 1) as u8;
+        let mut faulted:usize = MAX_REPS + 1;
         for (rep_idx, msg_votes) in concensus.iter().enumerate() {
             if *msg_votes < min {
                 min = *msg_votes;
                 faulted = rep_idx;
             }
         }
-        assert_ne!(faulted,4);
+
+        assert_ne!(faulted,MAX_REPS + 1);
         return self.replicas[faulted].id;
     }
 }

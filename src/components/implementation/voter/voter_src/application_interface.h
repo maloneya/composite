@@ -23,7 +23,6 @@ pack_args(int * args, int arg1, int arg2, int arg3)
 	args[2] = arg3;
 }
 
-
 int
 _voter_write(int fd, int count)
 {
