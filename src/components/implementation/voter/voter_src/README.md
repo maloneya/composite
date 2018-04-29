@@ -27,7 +27,7 @@ Voter Rust Crate
 
 Voter component interface 
 `components/interface/voter/: `
-	* voter.h - client interface an application must include to call available operations in the voter. includes client stubs to set up shared memory with the voter. must match application_interface.h [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/interface/voter/voter.h)
+* voter.h - client interface an application must include to call available operations in the voter. includes client stubs to set up shared memory with the voter. must match application_interface.h [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/interface/voter/voter.h)
 
 Dependencies
 * lib_composite
