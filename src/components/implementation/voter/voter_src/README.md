@@ -14,25 +14,25 @@ Currently faulted replicas are simply blocked indefinitely and we continue to ru
 _Component Structure_
 C files 
 `components/implementation/voter/voter_src/:`
-	* main.c - Handles component initialization and replica booting. Implements the `request(op,size,args)`  synchronous invocation allowing resource requests to be passed to the voter.  [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/main.c)
-	* application_interface.h - specifies all the operations the voter can preform on behalf of its application. i.e. - `read(); write();`  [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/application_interface.h)
+* main.c - Handles component initialization and replica booting. Implements the `request(op,size,args)`  synchronous invocation allowing resource requests to be passed to the voter.  [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/main.c)
+* application_interface.h - specifies all the operations the voter can preform on behalf of its application. i.e. - `read(); write();`  [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/application_interface.h)
 
 Voter Rust Crate
 `components/implementation/voter/voter_src/rust_src/src/:`
-	* lib.rs - rust entry ponts [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/lib.rs)
-	* voter/mod.rs - voter main file, initialization, monitoring and requesting live here [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/mod.rs)
-	* voter/server_bindings.rs - Request demultiplexer, unpacks requests and contacts the server to make them on behalf of the replicated application. Must match application_interface.h [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/server_bindings.rs)
-	* voter/voter_config.rs - defines global values for the voter [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/server_config.rs)
-	* voter/voter_lib.rs - implements voter mechanisms such as replica state checks, vote comparison, and vote collection [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/voter_lib.rs)
+* lib.rs - rust entry ponts [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/lib.rs)
+* voter/mod.rs - voter main file, initialization, monitoring and requesting live here [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/mod.rs)
+* voter/server_bindings.rs - Request demultiplexer, unpacks requests and contacts the server to make them on behalf of the replicated application. Must match application_interface.h [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/server_bindings.rs)
+* voter/voter_config.rs - defines global values for the voter [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/server_config.rs)
+* voter/voter_lib.rs - implements voter mechanisms such as replica state checks, vote comparison, and vote collection [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/implementation/voter/voter_src/rust_src/src/voter/voter_lib.rs)
 
 Voter component interface 
 `components/interface/voter/: `
 	* voter.h - client interface an application must include to call available operations in the voter. includes client stubs to set up shared memory with the voter. must match application_interface.h [src](https://github.com/maloneya/composite/blob/rk_voter/src/components/interface/voter/voter.h)
 
 Dependencies
-	* lib_composite
-	* lazy_static 
-	* lib_rk (if the voter needs to make resource requests to the rump kernel) 
+* lib_composite
+* lazy_static 
+* lib_rk (if the voter needs to make resource requests to the rump kernel) 
 
 ## Voting Mechanism
 Application monitoring is done via round robin scheduling. Each replica runs for a scheduler quantum then the voter thread runs and checks the state of each replica. When a replica makes a request the requesting thread id is stored (we don’t keep this permanently because the requesting thread id could change for future requests in multithreaded applications) .
@@ -47,8 +47,8 @@ Once the resource request returns to the voter we pass it along to each replica 
 
 ## Application Server Interface
 Configuring the voter to accept requests on behalf of a given server is done in two parts:
-	1. **The client -> voter interface** - The voter must mimic the interface of what ever server the application typically expects. The client interface is defied in `interface/voter.h (client) `and `voter/application_interface.h (voter)` . These files must provide the same set of synchronous invocations as the server.  
-	2. **The voter -> server interface** - The voter must interface with the server, demultiplexing a replicas vote and calling out to the correct server resource providing function. This is done in -  `voter/rust/server_bindings.rs `
+1. **The client -> voter interface** - The voter must mimic the interface of what ever server the application typically expects. The client interface is defied in `interface/voter.h (client) `and `voter/application_interface.h (voter)` . These files must provide the same set of synchronous invocations as the server.  
+2. **The voter -> server interface** - The voter must interface with the server, demultiplexing a replicas vote and calling out to the correct server resource providing function. This is done in -  `voter/rust/server_bindings.rs `
 
 Requests are multiplexed into the voter via `request(op, size, args)` and demultiplexed back out to the server via `handle_request(vote,server_shared_mem)` 
 
